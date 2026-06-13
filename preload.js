@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld('pawback', {
   sendMoodResponse:    (mood) => ipcRenderer.send('mood-response', mood),
   onMoodUpdate:        (cb) => safeOn('mood-update',    (e, data) => cb(data)),
   onStatsUpdate:       (cb) => safeOn('stats-update',   (e, data) => cb(data)),
+  onMoodChange:        (cb) => safeOn('mood-change',    (e, data) => cb(data)),
   getMoodLog:          () => ipcRenderer.invoke('get-mood-log'),
   getPersona:          () => ipcRenderer.invoke('get-persona'),
   getFocusDna:         () => ipcRenderer.invoke('get-focus-dna'),

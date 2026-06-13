@@ -6,25 +6,27 @@
       margin: 0; padding: 0;
       background: transparent;
       overflow: hidden;
-      width: 150px;
-      height: 150px;
+      width: 240px;
+      height: 210px;
       position: relative;
     }
 
     .pet-wrap {
-      width: 140px;
-      height: 140px;
-      position: relative;
+      width: 190px;
+      height: 190px;
+      position: fixed;
+      bottom: 0px;
+      left: 15px;
       transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
     }
     .pet-wrap.hidden {
-      transform: translateX(160px);
+      transform: translateX(230px);
       opacity: 0;
     }
 
     img {
-      width: 140px;
-      height: 140px;
+      width: 190px;
+      height: 190px;
       object-fit: contain;
       display: block;
       transition: filter 0.4s ease;
@@ -33,6 +35,7 @@
       cursor: pointer;
     }
 
+    /* ── MOOD ANIMATIONS ── */
     @keyframes idleBob {
       0%, 100% { transform: translateY(0) scale(1); }
       50%      { transform: translateY(-6px) scale(1.02); }
@@ -51,35 +54,71 @@
       25%     { transform: rotate(-6deg) scale(1.08); }
       75%     { transform: rotate(6deg) scale(1.08); }
     }
-
-    .suspicious { filter: hue-rotate(30deg) saturate(1.4); }
-    .done       { filter: hue-rotate(200deg) saturate(1.6) brightness(0.85); }
-    .panicking  { animation: panic 0.5s ease infinite !important; }
-    .wiggling   { animation: wiggle 0.3s ease 3 !important; }
-
-    /* sickness states based on petHealth */
-    .sick-mild {
-      filter: saturate(0.7) brightness(0.95);
-      animation-duration: 3.4s !important;
+    @keyframes happyBounce {
+      0%,100% { transform: translateY(0) rotate(-4deg) scale(1); }
+      50%     { transform: translateY(-12px) rotate(4deg) scale(1.06); }
     }
-    .sick-bad {
-      filter: grayscale(0.6) saturate(0.4) brightness(0.85);
-      animation-duration: 4.2s !important;
+    @keyframes angrySHAKE {
+      0%,100% { transform: translateX(-5px) rotate(-3deg); }
+      50%     { transform: translateX(5px) rotate(3deg); }
     }
-    .sick-critical {
-      filter: grayscale(0.9) saturate(0.15) brightness(0.7);
-      animation-name: droop;
-      animation-duration: 4.5s !important;
+    @keyframes sleepyBob {
+      0%,100% { transform: translateY(0) rotate(-2deg) scale(0.98); }
+      50%     { transform: translateY(-2px) rotate(2deg) scale(0.98); }
+    }
+    @keyframes focusedPulse {
+      0%,100% { transform: scale(1) translateY(0); filter: drop-shadow(0 0 0px #7c6af7) brightness(1); }
+      50%     { transform: scale(1.03) translateY(-4px); filter: drop-shadow(0 0 12px #7c6af7) brightness(1.1); }
+    }
+    @keyframes partyBounce {
+      0%,100% { transform: translateY(0) rotate(-5deg) scale(1); }
+      50%     { transform: translateY(-14px) rotate(5deg) scale(1.08); }
     }
     @keyframes droop {
       0%, 100% { transform: translateY(2px) scale(0.98); }
       50%      { transform: translateY(6px) scale(0.96); }
     }
+    @keyframes scaredShiver {
+      0%,100% { transform: translateX(-2px) scaleY(0.97); }
+      50%     { transform: translateX(2px) scaleY(1.03); }
+    }
 
+    /* mood classes on img */
+    img.mood-happy   { animation: happyBounce 0.4s ease-in-out infinite !important; }
+    img.mood-angry   { animation: angrySHAKE 0.12s ease-in-out infinite !important; filter: hue-rotate(330deg) saturate(1.8) brightness(0.9) !important; }
+    img.mood-sleepy  { animation: sleepyBob 3.5s ease-in-out infinite !important; filter: brightness(0.85) saturate(0.7) !important; }
+    img.mood-focused { animation: focusedPulse 2s ease-in-out infinite !important; }
+    img.mood-party   { animation: partyBounce 0.3s ease-in-out infinite !important; filter: hue-rotate(var(--party-hue, 0deg)) saturate(1.5) brightness(1.1) !important; }
+    img.mood-scared  { animation: scaredShiver 0.15s ease-in-out infinite !important; }
+
+    /* your original mood classes */
+    img.suspicious { filter: hue-rotate(30deg) saturate(1.4); }
+    img.done       { filter: hue-rotate(200deg) saturate(1.6) brightness(0.85); }
+    img.panicking  { animation: panic 0.5s ease infinite !important; }
+    img.wiggling   { animation: wiggle 0.3s ease 3 !important; }
+
+    /* sickness states */
+    img.sick-mild {
+      filter: saturate(0.7) brightness(0.95);
+      animation-duration: 3.4s !important;
+    }
+    img.sick-bad {
+      filter: grayscale(0.6) saturate(0.4) brightness(0.85);
+      animation-duration: 4.2s !important;
+    }
+    img.sick-critical {
+      filter: grayscale(0.9) saturate(0.15) brightness(0.7);
+      animation-name: droop;
+      animation-duration: 4.5s !important;
+    }
+
+    
+    /* ── BUBBLE ── */
     .bubble {
       position: fixed;
-      bottom: 155px;
-      right: 4px;
+      top: 6px;
+      left: 8px;
+      right: 8px;
       background: #1c1c1c;
       color: #f0ece4;
       font-family: sans-serif;
@@ -88,21 +127,21 @@
       padding: 8px 12px;
       border-radius: 14px;
       border: 1px solid #3a3a3a;
-      max-width: 180px;
-      min-width: 80px;
       text-align: center;
       box-shadow: 0 4px 16px rgba(0,0,0,0.4);
       opacity: 0;
-      transform: translateY(10px) scale(0.9);
+      transform: translateY(-6px) scale(0.9);
       transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
       pointer-events: none;
-      white-space: nowrap;
+      white-space: normal;
+      word-break: break-word;
     }
     .bubble::after {
       content: '';
       position: absolute;
       bottom: -6px;
-      right: 18px;
+      left: 50%;
+      margin-left: -5px;
       width: 10px; height: 10px;
       background: #1c1c1c;
       border-right: 1px solid #3a3a3a;
@@ -113,45 +152,183 @@
       opacity: 1;
       transform: translateY(0) scale(1);
     }
+
+    /* ── PARTICLES ── */
+    #particles {
+      position: fixed;
+      top: 0; left: 0;
+      width: 150px; height: 150px;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .heart {
+      position: absolute;
+      font-size: 14px;
+      animation: heartFloat 1.6s ease-out forwards;
+      pointer-events: none;
+    }
+    @keyframes heartFloat {
+      0%   { transform: translateY(0) scale(0.5) rotate(-10deg); opacity: 1; }
+      60%  { transform: translateY(-40px) scale(1.1) rotate(5deg); opacity: 1; }
+      100% { transform: translateY(-70px) scale(0.8) rotate(10deg); opacity: 0; }
+    }
+    .star {
+      position: absolute;
+      font-size: 12px;
+      animation: starPop 0.8s ease-out forwards;
+      pointer-events: none;
+    }
+    @keyframes starPop {
+      0%   { transform: scale(0) rotate(0deg); opacity: 1; }
+      50%  { transform: scale(1.3) rotate(180deg); opacity: 1; }
+      100% { transform: scale(0) rotate(360deg); opacity: 0; }
+    }
+    .spark {
+      position: absolute;
+      width: 3px; height: 3px;
+      background: #ff4444;
+      border-radius: 50%;
+      animation: sparkShoot 0.6s ease-out forwards;
+    }
+    @keyframes sparkShoot {
+      0%   { transform: translate(0,0); opacity: 1; }
+      100% { transform: translate(var(--dx), var(--dy)); opacity: 0; }
+    }
+
+    /* ── DEBT BADGE ── */
+    #debtBadge {
+      position: fixed;
+      top: 6px;
+      left: 4px;
+      background: #ff4444;
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      font-family: sans-serif;
+      padding: 3px 7px;
+      border-radius: 10px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    #debtBadge.show { opacity: 1; }
+
+    /* ── HEALTH BAR ── */
+    #healthWrap {
+      display: none;
+    }
+    #healthBar {
+      height: 100%;
+      width: 70%;
+      background: linear-gradient(90deg, #7c6af7, #00d4aa);
+      border-radius: 2px;
+      transition: width 0.6s ease, background 0.6s ease;
+    }
   </style>
 </head>
 <body>
-  <div class="pet-wrap" id="petWrap">
+  <div class="pet-wrap" id="petWrap" style="position:fixed;bottom:6px;left:5px;">
     <img id="pet" src="cat.svg" />
   </div>
   <div class="bubble" id="bubble"></div>
+  <div id="particles"></div>
+  <div id="debtBadge"></div>
+  <div id="healthWrap"><div id="healthBar"></div></div>
 
   <script>
-    const img     = document.getElementById('pet');
-    const petWrap = document.getElementById('petWrap');
-    const bubble  = document.getElementById('bubble');
+    const img        = document.getElementById('pet');
+    const petWrap    = document.getElementById('petWrap');
+    const bubble     = document.getElementById('bubble');
+    const particles  = document.getElementById('particles');
+    const debtBadge  = document.getElementById('debtBadge');
+    const healthBar  = document.getElementById('healthBar');
 
-    // load saved pet
+    // ── load saved pet ──
     window.pawback.getSettings().then(s => {
       if (s?.pet) img.src = s.pet;
+      if (typeof s?.petHealth === 'number') applyHealthLook(s.petHealth);
     });
 
-    // mood (color shifts)
+    // ── MOOD (new system from main.js broadcastMoodChange) ──
+    let currentMood = 'idle';
+    let partyHueInterval = null;
+
+    const moodMessages = {
+      angry:   ['😤 get back!!', 'nooo!!', 'i see you...', '🔥 caught!!'],
+      happy:   ['purrrr~ 💜', 'yay!! 🎉', 'ily!! 💕'],
+      party:   ['break time!! 🎉', 'go relax!! 🌿', 'you earned it 🥳'],
+      focused: ['locked in 🔒', 'in the zone ⚡', 'beast mode 💪'],
+      sleepy:  ['zzz... 😴', 'wake me up...', 'so sleepy...'],
+    };
+
+    function setMood(mood) {
+      if (currentMood === mood) return;
+      currentMood = mood;
+
+      // clear all mood classes
+      img.classList.remove('mood-happy','mood-angry','mood-sleepy','mood-focused','mood-party','mood-scared');
+      clearInterval(partyHueInterval);
+
+      if (mood === 'angry') {
+        img.classList.add('mood-angry');
+        spawnSparks();
+      } else if (mood === 'happy') {
+        img.classList.add('mood-happy');
+        spawnHearts();
+      } else if (mood === 'party') {
+        img.classList.add('mood-party');
+        spawnStars();
+        let hue = 0;
+        partyHueInterval = setInterval(() => {
+          hue = (hue + 10) % 360;
+          img.style.setProperty('--party-hue', hue + 'deg');
+        }, 50);
+      } else if (mood === 'focused') {
+        img.classList.add('mood-focused');
+        spawnParticles(4, ['#7c6af7','#00d4aa']);
+      } else if (mood === 'sleepy') {
+        img.classList.add('mood-sleepy');
+      } else if (mood === 'scared') {
+        img.classList.add('mood-scared');
+      }
+      // idle = no class, just default idleBob
+    }
+
+    window.pawback.onMoodChange && window.pawback.onMoodChange(({ mood, health, debt }) => {
+      setMood(mood || 'idle');
+      if (health !== undefined) updateHealthBar(health);
+      if (debt && debt > 0) {
+        debtBadge.textContent = `-${debt} min`;
+        debtBadge.classList.add('show');
+      } else {
+        debtBadge.classList.remove('show');
+      }
+    });
+
+    // ── original mood (color shifts from set-mood) ──
     window.pawback.onSetMood(mood => {
       img.classList.remove('suspicious', 'done');
       if (mood === 'suspicious') img.classList.add('suspicious');
       if (mood === 'done')       img.classList.add('done');
     });
 
-    // health-based sickness look — updates live as petHealth drops
+    // ── pet swap ──
+    window.pawback.onSetPet(pet => { img.src = pet; });
+
+    // ── health / sickness ──
     let lastHealthBand = null;
     const sickBubbles = {
-      bad: ["i don't feel so good...", "🤒 ruff day", "everything hurts"],
+      bad:      ["i don't feel so good...", "🤒 ruff day", "everything hurts"],
       critical: ["help... 😿", "i'm fading...", "please... lock in..."],
     };
-    window.pawback.onPetHealth(v => applyHealthLook(v));
 
     function applyHealthLook(v) {
       img.classList.remove('sick-mild', 'sick-bad', 'sick-critical');
+      updateHealthBar(v);
       let band = 'ok';
       if (v <= 15)      { img.classList.add('sick-critical'); band = 'critical'; }
-      else if (v <= 35) { img.classList.add('sick-bad');       band = 'bad'; }
-      else if (v <= 60) { img.classList.add('sick-mild');      band = 'mild'; }
+      else if (v <= 35) { img.classList.add('sick-bad');      band = 'bad'; }
+      else if (v <= 60) { img.classList.add('sick-mild');     band = 'mild'; }
 
       if ((band === 'bad' || band === 'critical') && band !== lastHealthBand) {
         const pool = sickBubbles[band];
@@ -160,42 +337,48 @@
       lastHealthBand = band;
     }
 
-    // pet swap from settings
-    window.pawback.onSetPet(pet => { img.src = pet; });
+    function updateHealthBar(v) {
+      const pct = Math.max(0, Math.min(100, v));
+      if (pct > 60)      img.style.filter = 'none';
+      else if (pct > 30) img.style.filter = 'saturate(0.4) brightness(0.8) grayscale(0.3)';
+      else               img.style.filter = 'saturate(0.1) brightness(0.6) grayscale(0.8)';
+    }
 
-    // apply saved health immediately on load (don't wait for first adjustHealth call)
-    window.pawback.getSettings().then(s => {
-      if (typeof s?.petHealth === 'number') {
-        applyHealthLook(s.petHealth);
-      }
-    });
+    window.pawback.onPetHealth(v => applyHealthLook(v));
 
-    // encouragement bubbles
+    // ── bubbles ──
+    let bubbleTimer = null;
     window.pawback.onShowBubble(msg => {
       bubble.textContent = msg;
       bubble.classList.add('show');
-      setTimeout(() => bubble.classList.remove('show'), 4500);
+      clearTimeout(bubbleTimer);
+      bubbleTimer = setTimeout(() => bubble.classList.remove('show'), 4500);
     });
 
-    // pre-pounce warning — pet panics before pounce window opens
+    function showBubbleTemp(msg, duration = 1200) {
+      bubble.textContent = msg;
+      bubble.classList.add('show');
+      clearTimeout(bubbleTimer);
+      bubbleTimer = setTimeout(() => bubble.classList.remove('show'), duration);
+    }
+
+    // ── pre-pounce ──
     window.pawback.onPrePounce(() => {
       img.classList.remove('wiggling');
       img.classList.add('panicking');
+      spawnSparks();
       showBubbleTemp('😱 oh no—');
       setTimeout(() => img.classList.remove('panicking'), 400);
     });
 
-    // hide/show when pounce is active
+    // ── pounce active hide/show ──
     window.pawback.onPounceActive(active => {
-      if (active) {
-        petWrap.classList.add('hidden');
-      } else {
-        petWrap.classList.remove('hidden');
-      }
+      if (active) petWrap.classList.add('hidden');
+      else        petWrap.classList.remove('hidden');
     });
 
-    // hover interaction — pet wiggles and shows a cheeky bubble
-    const hoverMessages = ['👀', 'watching...', 'hi there 🐾', 'focus!', 'don\'t mind me'];
+    // ── hover ──
+    const hoverMessages = ['👀', 'watching...', 'hi there 🐾', 'focus!', "don't mind me"];
     let hoverTimeout = null;
     img.addEventListener('mouseenter', () => {
       img.classList.remove('panicking');
@@ -208,15 +391,15 @@
       img.classList.remove('wiggling');
     });
 
+    // ── click → open dashboard ──
     img.addEventListener('click', () => {
       window.pawback.openDashboard();
     });
 
-    // mood check-in
+    // ── mood check-in ──
     window.pawback.onMoodCheckin(() => {
       const existing = document.getElementById('moodCheckin');
       if (existing) existing.remove();
-
       const moods = ['💪', '😊', '😴', '😤'];
       const wrap = document.createElement('div');
       wrap.id = 'moodCheckin';
@@ -241,57 +424,143 @@
       wrap.querySelectorAll('button').forEach(btn => {
         btn.addEventListener('click', () => {
           window.pawback.sendMoodResponse(btn.dataset.mood);
+          const mood = btn.dataset.mood;
+          if (mood === '💪') { setMood('party'); spawnStars(); }
+          else if (mood === '😊') { setMood('happy'); spawnHearts(); }
+          else if (mood === '😴') { setMood('sleepy'); }
+          else if (mood === '😤') { setMood('scared'); }
+          setTimeout(() => setMood('idle'), 3000);
           wrap.remove();
         });
       });
       setTimeout(() => { if (wrap.parentNode) wrap.remove(); }, 20000);
     });
 
-    function showBubbleTemp(msg, duration = 1200) {
-      bubble.textContent = msg;
-      bubble.classList.add('show');
-      clearTimeout(hoverTimeout);
-      hoverTimeout = setTimeout(() => bubble.classList.remove('show'), duration);
+    // ── random idle party ──
+    setInterval(() => {
+      if (currentMood === 'idle' && Math.random() < 0.04) {
+        setMood('party');
+        showBubbleTemp(['random dance break!! 🕺','vibes only ✨','feeling it rn 💜'][Math.floor(Math.random()*3)], 2000);
+        setTimeout(() => setMood('idle'), 3000);
+      }
+    }, 8000);
+
+    // ── sleepy after 2min idle ──
+    let idleTimer = setTimeout(() => {
+      if (currentMood === 'idle') setMood('sleepy');
+    }, 120000);
+    document.addEventListener('mousemove', () => {
+      clearTimeout(idleTimer);
+      if (currentMood === 'sleepy') {
+        setMood('idle');
+        showBubbleTemp('oh ur here!! 👀', 1500);
+      }
+      idleTimer = setTimeout(() => {
+        if (currentMood === 'idle') setMood('sleepy');
+      }, 120000);
+    });
+
+    // ── PARTICLES ──
+    function spawnParticles(count, colors) {
+      for (let i = 0; i < count; i++) {
+        setTimeout(() => {
+          const p = document.createElement('div');
+          p.className = 'particle';
+          const size = 4 + Math.random() * 6;
+          p.style.cssText = `
+            position:absolute;border-radius:50%;
+            width:${size}px;height:${size}px;
+            left:${30+Math.random()*80}px;top:${40+Math.random()*60}px;
+            background:${colors[Math.floor(Math.random()*colors.length)]};
+            --dx:${(Math.random()-0.5)*60}px;--dy:${-20-Math.random()*50}px;
+            animation:particleFloat 1.2s ease-out forwards;
+          `;
+          particles.appendChild(p);
+          setTimeout(() => p.remove(), 1200);
+        }, i * 60);
+      }
+    }
+
+    function spawnHearts() {
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+          const h = document.createElement('div');
+          h.className = 'heart';
+          h.textContent = ['❤️','💜','💕','💖'][Math.floor(Math.random()*4)];
+          h.style.cssText = `left:${20+Math.random()*100}px;top:${60+Math.random()*50}px;`;
+          particles.appendChild(h);
+          setTimeout(() => h.remove(), 1600);
+        }, i * 200);
+      }
+    }
+
+    function spawnStars() {
+      for (let i = 0; i < 8; i++) {
+        setTimeout(() => {
+          const s = document.createElement('div');
+          s.className = 'star';
+          s.textContent = ['⭐','✨','🌟','💫'][Math.floor(Math.random()*4)];
+          s.style.cssText = `left:${5+Math.random()*130}px;top:${10+Math.random()*120}px;`;
+          particles.appendChild(s);
+          setTimeout(() => s.remove(), 800);
+        }, i * 80);
+      }
+    }
+
+    function spawnSparks() {
+      for (let i = 0; i < 8; i++) {
+        const sp = document.createElement('div');
+        sp.className = 'spark';
+        const angle = (i / 8) * Math.PI * 2;
+        sp.style.cssText = `
+          left:${70+Math.cos(angle)*30}px;
+          top:${70+Math.sin(angle)*25}px;
+          --dx:${Math.cos(angle)*28}px;
+          --dy:${Math.sin(angle)*28}px;
+        `;
+        particles.appendChild(sp);
+        setTimeout(() => sp.remove(), 600);
+      }
     }
   </script>
+
   <script>
-  let dragging = false, startX, startY, winStartX, winStartY, posReady = false;
+    // ── RIGHT-CLICK DRAG ──
+    let dragging = false, startX, startY, winStartX, winStartY, posReady = false;
 
-  document.addEventListener('mousedown', (e) => {
-    if (e.button !== 1 && e.button !== 2) return; // middle or right click to drag
-    e.preventDefault();
-    posReady = false;
-    window.pawback.getWindowPosition().then(pos => {
-      winStartX = pos.x;
-      winStartY = pos.y;
-      startX = e.screenX;
-      startY = e.screenY;
-      posReady = true;
-      dragging = true;
+    document.addEventListener('mousedown', (e) => {
+      if (e.button !== 1 && e.button !== 2) return;
+      e.preventDefault();
+      posReady = false;
+      window.pawback.getWindowPosition().then(pos => {
+        winStartX = pos.x;
+        winStartY = pos.y;
+        startX = e.screenX;
+        startY = e.screenY;
+        posReady = true;
+        dragging = true;
+      });
     });
-  });
 
-  document.addEventListener('mousemove', (e) => {
-    if (!dragging || !posReady) return;
-    const dx = e.screenX - startX;
-    const dy = e.screenY - startY;
-    window.pawback.movePeekWindow(winStartX + dx, winStartY + dy);
-  });
+    document.addEventListener('mousemove', (e) => {
+      if (!dragging || !posReady) return;
+      const dx = e.screenX - startX;
+      const dy = e.screenY - startY;
+      window.pawback.movePeekWindow(winStartX + dx, winStartY + dy);
+    });
 
-  document.addEventListener('mouseup', (e) => {
-    if (!dragging || (e.button !== 1 && e.button !== 2)) return;
-    dragging = false;
-    posReady = false;
-    const dx = e.screenX - startX;
-    const dy = e.screenY - startY;
-    window.pawback.savePeekPosition(winStartX + dx, winStartY + dy);
-  });
+    document.addEventListener('mouseup', (e) => {
+      if (!dragging || (e.button !== 1 && e.button !== 2)) return;
+      dragging = false;
+      posReady = false;
+      const dx = e.screenX - startX;
+      const dy = e.screenY - startY;
+      window.pawback.savePeekPosition(winStartX + dx, winStartY + dy);
+    });
 
-  document.addEventListener('contextmenu', (e) => e.preventDefault());
-
-  // block file drops
-  document.addEventListener('dragover',  (e) => e.preventDefault());
-  document.addEventListener('drop',      (e) => e.preventDefault());  
-</script>
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.addEventListener('dragover',    (e) => e.preventDefault());
+    document.addEventListener('drop',        (e) => e.preventDefault());
+  </script>
 </body>
 </html>

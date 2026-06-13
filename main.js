@@ -13,7 +13,7 @@ function loadSettings() {
   } catch (e) {
     return {
       allowedApps: ['Code', 'opera', 'explorer'],
-      pet: 'cat.svg',
+      pet: 'penguin.png',
       breakDurationMin: 10,
       pauseDurationMin: 60,
       streak: 0,
@@ -490,7 +490,7 @@ async function maybeShowEncouragement() {
 function createPeekWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
   peekWindow = new BrowserWindow({
-    width: 150, height: 150,
+    width: 240, height: 210,
     x: width - 100, y: height - 190,
     frame: false, transparent: true,
     alwaysOnTop: true, skipTaskbar: true,
@@ -593,6 +593,7 @@ function tick() {
         pomodoroRound++;
         pomodoroEndsAt  = Date.now() + (settings.pomodoroWorkMin || 25) * 60 * 1000;
         playSound('pounce.wav');
+        broadcastMoodChange();
         if (peekWindow && !peekWindow.isDestroyed())
           peekWindow.webContents.send('show-bubble', `🍅 Round ${pomodoroRound} — lock in!`);
       }
@@ -691,6 +692,7 @@ function tick() {
     flushStatsToHistory();
     checkIntervention();
     playSound('pounce.wav');
+    broadcastMoodChange();
     if (peekWindow && !peekWindow.isDestroyed()) peekWindow.webContents.send('pre-pounce');
 
     (async () => {
@@ -709,6 +711,7 @@ function tick() {
       focusSeconds++;
       healthFocusCounter++;
       if (focusSeconds % 60 === 0) { hourlyFocus[new Date().getHours()]++; broadcastStats(); }
+      if (focusSeconds % 5 === 0) broadcastMoodChange();
       if (healthFocusCounter >= 60) {
         healthFocusCounter = 0;
         adjustHealth(2);
@@ -739,6 +742,7 @@ function tick() {
     flushStatsToHistory();
     checkIntervention();
     playSound('pounce.wav');
+    broadcastMoodChange();
     if (peekWindow && !peekWindow.isDestroyed()) peekWindow.webContents.send('pre-pounce');
 
     (async () => {
@@ -903,6 +907,17 @@ $all | Group-Object Name | ForEach-Object { $_.Group[0] } | Select-Object Name, 
 }));
 
 ipcMain.on('close-report-card',  () => { if (reportCardWindow) reportCardWindow.close(); });
+
+ipcMain.on('start-payback', () => {
+  if (debtMinutes > 0) {
+    paybackActive = true;
+    paybackSeconds = debtMinutes * 60;
+    paybackEndsAt = Date.now() + paybackSeconds * 1000;
+    broadcastMoodChange();
+    if (peekWindow && !peekWindow.isDestroyed())
+      peekWindow.webContents.send('show-bubble', `🔥 PAYBACK TIME! You owe ${debtMinutes} min. No breaks until it's paid!`);
+  }
+});
 
 ipcMain.on('mood-response', async (event, mood) => {
   const entry = { time: new Date().toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' }), mood };
@@ -1328,6 +1343,22 @@ function computeAppHeatmap() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 8)
     .map(([app, count]) => ({ app, count }));
+}
+
+function computeCatMood() {
+  if (paybackActive) return 'angry';
+  if (onBreak) return 'party';
+  if (awaitingResponse) return 'angry';
+  if (focusSeconds > 0 && !awaitingResponse) return 'focused';
+  return 'idle';
+}
+
+function broadcastMoodChange() {
+  const mood = computeCatMood();
+  const health = settings.petHealth ?? 70;
+  const debt = paybackActive ? Math.ceil(paybackSeconds / 60) : debtMinutes;
+  if (peekWindow && !peekWindow.isDestroyed())
+    peekWindow.webContents.send('mood-change', { mood, health, debt });
 }
 
 function flushStatsToHistory() {

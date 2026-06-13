@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0f0f13;font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;padding:40px 20px;min-height:100vh}
+
+  h1{color:#fff;font-size:18px;font-weight:500;margin-bottom:8px;opacity:0.7}
+  .subtitle{color:#888;font-size:13px;margin-bottom:32px}
+
+  .state-bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:40px}
+  .state-btn{padding:8px 18px;border-radius:20px;border:1.5px solid #333;background:#1a1a22;color:#aaa;font-size:13px;cursor:pointer;transition:all 0.2s}
+  .state-btn:hover{border-color:#666;color:#fff}
+  .state-btn.active{background:#5c4aff;border-color:#5c4aff;color:#fff}
+
+  .pet-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:24px;max-width:900px;width:100%}
+
+  .pet-card{background:#1a1a22;border-radius:20px;border:1.5px solid #2a2a36;padding:20px 10px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;position:relative;overflow:hidden}
+  .pet-card:hover{border-color:#3a3a56}
+  .pet-name{color:#888;font-size:12px;font-weight:500;letter-spacing:0.5px}
+
+  .pet-wrap{width:110px;height:110px;position:relative;display:flex;align-items:center;justify-content:center}
+  .pet-img{width:100%;height:100%;object-fit:contain;image-rendering:crisp-edges}
+
+  /* ── IDLE: gentle float ── */
+  @keyframes idle-float{
+    0%,100%{transform:translateY(0) rotate(0deg)}
+    30%{transform:translateY(-10px) rotate(-1deg)}
+    70%{transform:translateY(-6px) rotate(1deg)}
+  }
+  /* ── IDLE: breathing scale ── */
+  @keyframes idle-breathe{
+    0%,100%{transform:scale(1)}
+    50%{transform:scale(1.04)}
+  }
+
+  /* ── PEEK: slide in from right, peep, hide ── */
+  @keyframes peek{
+    0%{transform:translateX(120%) rotate(15deg)}
+    15%{transform:translateX(20%) rotate(-5deg)}
+    20%{transform:translateX(20%) rotate(5deg)}
+    35%,65%{transform:translateX(10%) rotate(-3deg)}
+    80%{transform:translateX(20%) rotate(5deg)}
+    100%{transform:translateX(120%) rotate(15deg)}
+  }
+
+  /* ── POUNCE: drop from top, squish, bounce ── */
+  @keyframes pounce-drop{
+    0%{transform:translateY(-200%) scaleY(0.8)}
+    55%{transform:translateY(0) scaleY(1.3) scaleX(0.8)}
+    70%{transform:translateY(-20px) scaleY(0.9) scaleX(1.05)}
+    82%{transform:translateY(0) scaleY(1.1) scaleX(0.95)}
+    90%{transform:translateY(-8px) scaleY(0.95) scaleX(1.02)}
+    97%,100%{transform:translateY(0) scaleY(1) scaleX(1)}
+  }
+
+  /* ── DISAPPOINTED: droop + sad wiggle ── */
+  @keyframes sad-droop{
+    0%{transform:translateY(0) rotate(0deg)}
+    20%{transform:translateY(8px) rotate(-4deg)}
+    40%{transform:translateY(8px) rotate(4deg)}
+    60%{transform:translateY(8px) rotate(-3deg)}
+    80%{transform:translateY(8px) rotate(3deg)}
+    100%{transform:translateY(8px) rotate(0deg)}
+  }
+
+  /* ── TIRED: head tilt question ── */
+  @keyframes head-tilt{
+    0%,100%{transform:rotate(0deg) translateY(0)}
+    20%{transform:rotate(-12deg) translateY(-4px)}
+    40%{transform:rotate(12deg) translateY(-4px)}
+    60%{transform:rotate(-8deg) translateY(-2px)}
+    80%{transform:rotate(8deg) translateY(-2px)}
+  }
+
+  /* ── LOCKIN: aggressive shake + flash ── */
+  @keyframes lockin-shake{
+    0%,100%{transform:translateX(0) rotate(0deg) scale(1)}
+    10%{transform:translateX(-12px) rotate(-8deg) scale(1.1)}
+    20%{transform:translateX(12px) rotate(8deg) scale(1.15)}
+    30%{transform:translateX(-10px) rotate(-6deg) scale(1.1)}
+    40%{transform:translateX(10px) rotate(6deg) scale(1.12)}
+    50%{transform:translateX(-8px) rotate(-4deg) scale(1.08)}
+    60%{transform:translateX(8px) rotate(4deg) scale(1.1)}
+    70%{transform:translateX(-6px) rotate(-3deg) scale(1.05)}
+    80%{transform:translateX(6px) rotate(3deg) scale(1.05)}
+    90%{transform:translateX(0) scale(1.15)}
+  }
+  @keyframes lockin-flash{
+    0%,100%{filter:brightness(1)}
+    45%,55%{filter:brightness(2.2) saturate(2)}
+  }
+
+  /* ── BREAK: happy wiggle + bounce ── */
+  @keyframes break-happy{
+    0%,100%{transform:translateY(0) rotate(0deg) scale(1)}
+    15%{transform:translateY(-14px) rotate(-8deg) scale(1.08)}
+    30%{transform:translateY(-6px) rotate(8deg) scale(1.05)}
+    45%{transform:translateY(-12px) rotate(-6deg) scale(1.08)}
+    60%{transform:translateY(-4px) rotate(6deg) scale(1.05)}
+    75%{transform:translateY(-10px) rotate(-4deg) scale(1.06)}
+  }
+
+  /* ── CAUGHT: spin + shrink ── */
+  @keyframes caught{
+    0%{transform:scale(1) rotate(0deg)}
+    20%{transform:scale(1.2) rotate(-20deg)}
+    40%{transform:scale(0.85) rotate(20deg)}
+    60%{transform:scale(1.1) rotate(-10deg)}
+    80%{transform:scale(0.9) rotate(10deg)}
+    100%{transform:scale(1) rotate(0deg)}
+  }
+
+  /* state classes applied to .pet-img */
+  .state-idle .pet-img{
+    animation:idle-float 3s ease-in-out infinite, idle-breathe 4s ease-in-out infinite;
+    transform-origin:50% 80%;
+  }
+  .state-peek .pet-img{
+    animation:peek 4s ease-in-out infinite;
+    animation-delay:var(--delay,0s);
+    transform-origin:50% 50%;
+  }
+  .state-pounce .pet-img{
+    animation:pounce-drop 0.9s cubic-bezier(0.22,1,0.36,1) forwards;
+    animation-delay:var(--delay,0s);
+    transform-origin:50% 0%;
+  }
+  .state-sad .pet-img{
+    animation:sad-droop 2s ease-in-out forwards;
+    transform-origin:50% 20%;
+    filter:saturate(0.5) brightness(0.85);
+  }
+  .state-tired .pet-img{
+    animation:head-tilt 2.4s ease-in-out infinite;
+    transform-origin:50% 30%;
+  }
+  .state-lockin .pet-img{
+    animation:lockin-shake 0.6s ease-in-out infinite, lockin-flash 0.6s ease-in-out infinite;
+    transform-origin:50% 50%;
+  }
+  .state-break .pet-img{
+    animation:break-happy 1.2s ease-in-out infinite;
+    transform-origin:50% 80%;
+    filter:brightness(1.15) saturate(1.3);
+  }
+  .state-caught .pet-img{
+    animation:caught 0.8s ease-in-out forwards;
+    animation-delay:var(--delay,0s);
+    transform-origin:50% 50%;
+  }
+
+  /* floating particles */
+  .particles{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden}
+  .p{position:absolute;font-size:14px;opacity:0;animation:float-up 2s ease-out infinite}
+  @keyframes float-up{
+    0%{opacity:0;transform:translateY(0) scale(0.5)}
+    20%{opacity:1}
+    100%{opacity:0;transform:translateY(-80px) scale(1.2)}
+  }
+
+  /* sweat drop for sad state */
+  .sweat{position:absolute;top:10px;right:22px;font-size:16px;opacity:0;animation:sweat-drop 2s ease-in infinite}
+  @keyframes sweat-drop{
+    0%,40%{opacity:0;transform:translateY(-4px)}
+    60%{opacity:1}
+    100%{opacity:0;transform:translateY(20px)}
+  }
+  .state-sad .sweat{display:block}
+
+  /* stars for lockin */
+  .stars{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;display:none}
+  .star{position:absolute;width:6px;height:6px;background:#fff;clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);opacity:0;animation:star-pop 0.5s ease-out infinite}
+  @keyframes star-pop{
+    0%{opacity:0;transform:scale(0)}
+    50%{opacity:1;transform:scale(1.5)}
+    100%{opacity:0;transform:scale(0.5)}
+  }
+
+  .state-lockin .stars{display:block}
+  .state-break .particles{display:block}
+
+  /* zzz for idle after a while */
+  .zzz{position:absolute;top:4px;right:14px;opacity:0;font-size:11px;color:#aaa;font-style:italic;display:none}
+
+  /* caught counter badge */
+  .caught-badge{
+    position:absolute;top:8px;right:8px;
+    background:#e24b4a;color:#fff;
+    font-size:10px;font-weight:600;
+    border-radius:10px;padding:2px 6px;
+    display:none;
+  }
+  .state-caught .caught-badge{display:block}
+
+  /* name label under card */
+  .state-label{
+    font-size:10px;color:#5c4aff;font-weight:600;
+    letter-spacing:0.8px;text-transform:uppercase;
+    margin-top:2px;min-height:14px;
+  }
+</style>
+</head>
+<body>
+
+<h1>PawBack — pet animation preview</h1>
+<p class="subtitle">click a state to see all pets react</p>
+
+<div class="state-bar">
+  <button class="state-btn active" onclick="setState('idle')">Idle</button>
+  <button class="state-btn" onclick="setState('peek')">Peek</button>
+  <button class="state-btn" onclick="setState('pounce')">Pounce</button>
+  <button class="state-btn" onclick="setState('sad')">Disappointed</button>
+  <button class="state-btn" onclick="setState('tired')">Tired?</button>
+  <button class="state-btn" onclick="setState('lockin')">LOCK IN</button>
+  <button class="state-btn" onclick="setState('break')">Break time!</button>
+  <button class="state-btn" onclick="setState('caught')">Caught you</button>
+</div>
+
+<div class="pet-grid" id="grid"></div>
+
+<script>
+const pets = [
+  {id:'penguin', name:'Penguin'},
+  {id:'hamster', name:'Hamster'},
+  {id:'axolotl', name:'Axolotl'},
+  {id:'frog',    name:'Frog'},
+  {id:'duck',    name:'Duck'},
+  {id:'panda',   name:'Panda'},
+  {id:'ghost',   name:'Ghost'},
+  {id:'capybara',name:'Capybara'},
+  {id:'dragon',  name:'Dragon'},
+  {id:'seal',    name:'Seal'},
+];
+
+const stateLabels = {
+  idle:'just chilling',
+  peek:'peeking at you',
+  pounce:'POUNCE!',
+  sad:'disappointed...',
+  tired:'you tired?',
+  lockin:'LOCK IN NOW!!',
+  break:'yay break time!',
+  caught:'caught you!'
+};
+
+const particleEmojis = {
+  break:['♥','★','✿','♪'],
+  lockin:['⚡','💥'],
+};
+
+let currentState = 'idle';
+let catchCounts = {};
+
+const grid = document.getElementById('grid');
+
+pets.forEach((pet, i) => {
+  catchCounts[pet.id] = 0;
+  const delay = (i * 0.08).toFixed(2) + 's';
+
+  const card = document.createElement('div');
+  card.className = 'pet-card state-idle';
+  card.id = 'card-' + pet.id;
+  card.style.setProperty('--delay', delay);
+
+  card.innerHTML = `
+    <div class="pet-wrap">
+      <div class="particles" id="particles-${pet.id}"></div>
+      <div class="stars" id="stars-${pet.id}">
+        <div class="star" style="top:10%;left:20%;animation-delay:0s"></div>
+        <div class="star" style="top:20%;right:15%;animation-delay:0.15s"></div>
+        <div class="star" style="bottom:20%;left:10%;animation-delay:0.3s"></div>
+        <div class="star" style="bottom:10%;right:20%;animation-delay:0.1s"></div>
+      </div>
+      <div class="sweat">💧</div>
+      <img class="pet-img" src="${pet.id}.png" alt="${pet.name}" style="--delay:${delay}"/>
+      <div class="caught-badge" id="badge-${pet.id}">×0</div>
+    </div>
+    <div class="pet-name">${pet.name}</div>
+    <div class="state-label" id="label-${pet.id}">just chilling</div>
+  `;
+
+  card.addEventListener('click', () => {
+    if (currentState === 'caught') {
+      catchCounts[pet.id]++;
+      const badge = document.getElementById('badge-' + pet.id);
+      badge.textContent = '×' + catchCounts[pet.id];
+      triggerCaughtAnimation(pet.id, delay);
+    }
+  });
+
+  grid.appendChild(card);
+  spawnParticles(pet.id, ['♥','★','✿']);
+});
+
+function spawnParticles(petId, emojis) {
+  const container = document.getElementById('particles-' + petId);
+  container.innerHTML = '';
+  emojis.forEach((e, i) => {
+    const p = document.createElement('div');
+    p.className = 'p';
+    p.textContent = e;
+    p.style.left = (20 + i * 25) + '%';
+    p.style.bottom = '10px';
+    p.style.animationDelay = (i * 0.4) + 's';
+    p.style.animationDuration = (1.5 + i * 0.3) + 's';
+    container.appendChild(p);
+  });
+}
+
+function triggerCaughtAnimation(petId, delay) {
+  const card = document.getElementById('card-' + petId);
+  card.classList.remove('state-caught');
+  void card.offsetWidth;
+  card.classList.add('state-caught');
+}
+
+function setState(state) {
+  currentState = state;
+
+  document.querySelectorAll('.state-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.toLowerCase().includes(
+      state === 'idle' ? 'idle' :
+      state === 'peek' ? 'peek' :
+      state === 'pounce' ? 'pounce' :
+      state === 'sad' ? 'disappoint' :
+      state === 'tired' ? 'tired' :
+      state === 'lockin' ? 'lock' :
+      state === 'break' ? 'break' :
+      'caught'
+    ));
+  });
+
+  pets.forEach(pet => {
+    const card = document.getElementById('card-' + pet.id);
+    const label = document.getElementById('label-' + pet.id);
+    const badge = document.getElementById('badge-' + pet.id);
+
+    card.className = 'pet-card state-' + state;
+
+    label.textContent = stateLabels[state];
+
+    if (state === 'break') {
+      spawnParticles(pet.id, ['♥','★','✿','♪','♥']);
+    } else if (state === 'lockin') {
+      spawnParticles(pet.id, ['⚡','💥','⚡']);
+    } else {
+      spawnParticles(pet.id, []);
+    }
+
+    if (state === 'caught') {
+      badge.style.display = 'block';
+    } else {
+      badge.style.display = 'none';
+    }
+
+    if (state === 'pounce' || state === 'caught') {
+      const img = card.querySelector('.pet-img');
+      img.style.animation = 'none';
+      void img.offsetWidth;
+      img.style.animation = '';
+    }
+  });
+}
+</script>
+</body>
+</html>
