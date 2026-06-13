@@ -1,110 +1,160 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8"/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; }
+    :root {
+      --bg: #141414; --surface: #1c1c1c; --border: #2e2e2e;
+      --amber: #ff9f2f; --blue: #4fc3f7; --coral: #ff5f5f;
+      --green: #5cdb95; --text: #f0ece4; --muted: #777;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      margin: 0;
-      font-family: sans-serif;
-      background: #1a1a1a;
-      color: #eee;
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      min-height: 100vh;
+      padding: 32px 28px;
       text-align: center;
-      padding: 30px;
     }
-    h1 { font-size: 28px; margin-bottom: 4px; }
-    .sub { color: #999; font-size: 14px; margin-bottom: 30px; }
+
+    .pet-img {
+      width: 90px; height: 90px;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 16px rgba(0,0,0,0.4));
+      animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes popIn {
+      from { transform: scale(0.5); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    h1 {
+      font-size: 24px; font-weight: 800;
+      letter-spacing: -0.4px;
+      margin: 14px 0 4px;
+    }
+    .sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+
     .grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 16px;
+      gap: 12px;
       width: 100%;
-      max-width: 400px;
-      margin-bottom: 30px;
+      max-width: 380px;
+      margin-bottom: 20px;
     }
     .card {
-      background: #2a2a2a;
-      border-radius: 12px;
-      padding: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
     }
-    .card .label { font-size: 13px; color: #999; margin-bottom: 8px; }
-    .card .value { font-size: 38px; font-weight: bold; color: #ffaa33; }
-    .card.focus .value { color: #4fc3f7; }
-    .card.streak .value { color: #ff6b35; }
-    .grade {
-      font-size: 72px;
-      font-weight: bold;
-      margin-bottom: 8px;
+    .card .label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 6px; }
+    .card .value { font-size: 34px; font-weight: 800; color: var(--amber); line-height: 1; letter-spacing: -1px; }
+    .card .value.blue  { color: var(--blue); }
+    .card .value.coral { color: var(--coral); }
+    .card .value.green { color: var(--green); }
+
+    .grade-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 28px;
+      width: 100%;
+      max-width: 380px;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
     }
-    .grade-label { font-size: 18px; color: #ccc; margin-bottom: 30px; }
+    .grade-wrap::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at center, var(--grade-glow, rgba(255,159,47,0.08)) 0%, transparent 70%);
+    }
+    .grade-letter {
+      font-size: 64px; font-weight: 800;
+      line-height: 1;
+      color: var(--grade-color, var(--amber));
+      letter-spacing: -2px;
+    }
+    .grade-label { font-size: 15px; color: var(--muted); margin-top: 6px; }
+
     .close-btn {
-      padding: 14px 50px;
-      background: #ffaa33;
-      border: none;
-      border-radius: 30px;
-      font-size: 16px;
-      font-weight: bold;
+      padding: 14px 48px;
+      background: var(--amber); color: #141414;
+      border: none; border-radius: 30px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 15px; font-weight: 700;
       cursor: pointer;
-      color: #222;
+      transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
     }
-    .close-btn:hover { background: #ffc266; }
+    .close-btn:hover { background: #ffb84d; transform: scale(1.04); }
+    .close-btn:active { transform: scale(0.97); }
   </style>
 </head>
 <body>
+  <img class="pet-img" id="petImg" src="cat.svg"/>
   <h1>Session Wrapped 🐾</h1>
   <div class="sub" id="duration">—</div>
 
   <div class="grid">
     <div class="card">
-      <div class="label">🐾 Times caught</div>
+      <div class="label">🐾 Caught</div>
       <div class="value" id="rcPounce">—</div>
     </div>
     <div class="card">
-      <div class="label">☕ Breaks taken</div>
+      <div class="label">☕ Breaks</div>
       <div class="value" id="rcBreaks">—</div>
     </div>
-    <div class="card focus">
-      <div class="label">🎯 Focus time</div>
-      <div class="value" id="rcFocus">—</div>
+    <div class="card">
+      <div class="label">🎯 Focused</div>
+      <div class="value green" id="rcFocus">—</div>
     </div>
-    <div class="card streak">
+    <div class="card">
       <div class="label">🔥 Streak</div>
-      <div class="value" id="rcStreak">—</div>
+      <div class="value coral" id="rcStreak">—</div>
     </div>
   </div>
 
-  <div class="grade" id="grade">—</div>
-  <div class="grade-label" id="gradeLabel">—</div>
+  <div class="grade-wrap" id="gradeWrap">
+    <div class="grade-letter" id="grade">—</div>
+    <div class="grade-label" id="gradeLabel">—</div>
+  </div>
 
-  <button class="close-btn" onclick="window.pawback.closeReportCard()">Close</button>
+  <button class="close-btn" onclick="window.pawback.closeReportCard()">Close & quit</button>
 
   <script>
-    window.pawback.getSessionStats().then(stats => {
-      window.pawback.getSettings().then(settings => {
-        document.getElementById('rcPounce').textContent = stats.pounceCount;
-        document.getElementById('rcBreaks').textContent = stats.breaksTaken;
-        document.getElementById('rcFocus').textContent = stats.focusMinutes + ' min';
-        document.getElementById('rcStreak').textContent = (settings.streak || 0) + ' day' + (settings.streak === 1 ? '' : 's');
-        document.getElementById('duration').textContent = `${stats.sessionMinutes} minute session`;
+    const gradeColors = { S: '#5cdb95', A: '#4fc3f7', B: '#ff9f2f', C: '#ffee55', D: '#ff9f2f', F: '#ff5f5f' };
+    const gradeGlows  = { S: 'rgba(92,219,149,0.12)', A: 'rgba(79,195,247,0.12)', B: 'rgba(255,159,47,0.10)', C: 'rgba(255,238,85,0.10)', D: 'rgba(255,159,47,0.08)', F: 'rgba(255,95,95,0.12)' };
 
-        // Grade based on focus ratio
-        const ratio = stats.sessionMinutes > 0 ? stats.focusMinutes / stats.sessionMinutes : 0;
-        let grade, label;
-        if (ratio >= 0.85)      { grade = 'S'; label = 'Absolutely locked in. Respect.'; }
-        else if (ratio >= 0.70) { grade = 'A'; label = 'Solid session. Cat is proud.'; }
-        else if (ratio >= 0.55) { grade = 'B'; label = 'Decent. Could be worse.'; }
-        else if (ratio >= 0.40) { grade = 'C'; label = 'The cat is disappointed.'; }
-        else if (ratio >= 0.25) { grade = 'D'; label = 'Bro. Come on.'; }
-        else                    { grade = 'F'; label = 'The cat has given up on you.'; }
+    Promise.all([window.pawback.getSessionStats(), window.pawback.getSettings()]).then(([stats, s]) => {
+      document.getElementById('petImg').src = s.pet || 'cat.svg';
+      document.getElementById('rcPounce').textContent = stats.pounceCount;
+      document.getElementById('rcBreaks').textContent = stats.breaksTaken;
+      document.getElementById('rcFocus').textContent  = stats.focusMinutes + ' min';
+      document.getElementById('rcStreak').textContent = (s.streak || 0) + ' day' + (s.streak === 1 ? '' : 's');
+      document.getElementById('duration').textContent = `${stats.sessionMinutes} min session`;
 
-        document.getElementById('grade').textContent = grade;
-        document.getElementById('grade-label') // typo guard
-        document.getElementById('gradeLabel').textContent = label;
-      });
+      const ratio = stats.sessionMinutes > 0 ? stats.focusMinutes / stats.sessionMinutes : 0;
+      let grade, label;
+      if      (ratio >= 0.85) { grade = 'S'; label = 'Absolutely locked in. Respect.'; }
+      else if (ratio >= 0.70) { grade = 'A'; label = 'Solid session. Cat is proud.'; }
+      else if (ratio >= 0.55) { grade = 'B'; label = 'Decent. Could be worse.'; }
+      else if (ratio >= 0.40) { grade = 'C'; label = 'The cat is disappointed.'; }
+      else if (ratio >= 0.25) { grade = 'D'; label = 'Bro. Come on.'; }
+      else                    { grade = 'F'; label = 'The cat has given up on you.'; }
+
+      document.getElementById('grade').textContent      = grade;
+      document.getElementById('gradeLabel').textContent = label;
+      document.getElementById('grade').style.color      = gradeColors[grade];
+      document.getElementById('gradeWrap').style.setProperty('--grade-color', gradeColors[grade]);
+      document.getElementById('gradeWrap').style.setProperty('--grade-glow',  gradeGlows[grade]);
     });
   </script>
 </body>
