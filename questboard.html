@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Daily Quests</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0f0f13;
+    color: #e8e8f0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 24px;
+    gap: 24px;
+  }
+
+  .header {
+    text-align: center;
+  }
+  .header h1 { font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }
+  .header p  { font-size: 13px; color: #888; margin-top: 4px; }
+
+  .xp-bar-wrap {
+    width: 100%;
+    max-width: 420px;
+  }
+  .xp-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #aaa;
+    margin-bottom: 6px;
+  }
+  .xp-bar {
+    width: 100%;
+    height: 8px;
+    background: #2a2a35;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #a78bfa, #7c3aed);
+    border-radius: 99px;
+    transition: width 0.5s ease;
+  }
+
+  .quests {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .quest-card {
+    background: #1a1a24;
+    border: 1px solid #2a2a38;
+    border-radius: 14px;
+    padding: 16px 18px;
+    transition: border-color 0.3s;
+  }
+  .quest-card.done {
+    border-color: #4ade80;
+    opacity: 0.75;
+  }
+
+  .quest-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .quest-text {
+    font-size: 14px;
+    font-weight: 500;
+    flex: 1;
+  }
+  .quest-badge {
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 99px;
+    background: #2a2a3e;
+    color: #a78bfa;
+    white-space: nowrap;
+    margin-left: 10px;
+  }
+  .quest-card.done .quest-badge {
+    background: #14532d;
+    color: #4ade80;
+  }
+
+  .prog-bar {
+    width: 100%;
+    height: 6px;
+    background: #2a2a35;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .prog-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #818cf8, #a78bfa);
+    border-radius: 99px;
+    transition: width 0.4s ease;
+  }
+  .quest-card.done .prog-fill { background: linear-gradient(90deg, #4ade80, #22c55e); }
+
+  .prog-label {
+    font-size: 11px;
+    color: #666;
+    margin-top: 5px;
+    text-align: right;
+  }
+
+  .empty {
+    color: #555;
+    font-size: 14px;
+    text-align: center;
+    margin-top: 40px;
+  }
+
+  .footer {
+    font-size: 12px;
+    color: #444;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🐾 Daily Quests</h1>
+  <p id="date-label">Loading...</p>
+</div>
+
+<div class="xp-bar-wrap">
+  <div class="xp-meta">
+    <span id="level-label">Level 1</span>
+    <span id="xp-label">0 / 200 XP</span>
+  </div>
+  <div class="xp-bar">
+    <div class="xp-fill" id="xp-fill" style="width:0%"></div>
+  </div>
+</div>
+
+<div class="quests" id="quests-container">
+  <p class="empty">Loading quests...</p>
+</div>
+
+<div class="footer">Quests reset daily at midnight · +50 XP each</div>
+
+<script>
+function todayLabel() {
+  return new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' });
+}
+
+document.getElementById('date-label').textContent = todayLabel();
+
+function questTypeLabel(type) {
+  if (type === 'focus_minutes')      return 'Focus';
+  if (type === 'stay_under_pounces') return 'Discipline';
+  if (type === 'no_break_streak')    return 'No Breaks';
+  return 'Quest';
+}
+
+function progressPct(q) {
+  if (q.done) return 100;
+  if (q.type === 'focus_minutes') {
+    return Math.min(100, Math.round((q.progress / q.target) * 100));
+  }
+  if (q.type === 'stay_under_pounces') {
+    // lower is better — show inverse
+    const pct = Math.max(0, Math.round((1 - q.progress / (q.target + 1)) * 100));
+    return pct;
+  }
+  if (q.type === 'no_break_streak') {
+    return q.progress === 0 ? 80 : 0; // binary-ish
+  }
+  return 0;
+}
+
+function progressLabel(q) {
+  if (q.done) return 'Complete ✓';
+  if (q.type === 'focus_minutes')      return `${q.progress} / ${q.target} min`;
+  if (q.type === 'stay_under_pounces') return `${q.progress} pounces (limit: ${q.target})`;
+  if (q.type === 'no_break_streak')    return q.progress === 0 ? 'No breaks yet 💪' : `${q.progress} break(s) taken`;
+  return '';
+}
+
+function render({ quests, totalXP, level }) {
+  const xpInLevel  = totalXP % 200;
+  const xpPct      = Math.round((xpInLevel / 200) * 100);
+  document.getElementById('level-label').textContent = `Level ${level}`;
+  document.getElementById('xp-label').textContent    = `${xpInLevel} / 200 XP`;
+  document.getElementById('xp-fill').style.width     = `${xpPct}%`;
+
+  const container = document.getElementById('quests-container');
+  if (!quests || !quests.length) {
+    container.innerHTML = '<p class="empty">No quests yet — check back in a moment.</p>';
+    return;
+  }
+
+  container.innerHTML = quests.map(q => `
+    <div class="quest-card ${q.done ? 'done' : ''}">
+      <div class="quest-top">
+        <span class="quest-text">${q.text}</span>
+        <span class="quest-badge">${questTypeLabel(q.type)}</span>
+      </div>
+      <div class="prog-bar">
+        <div class="prog-fill" style="width:${progressPct(q)}%"></div>
+      </div>
+      <div class="prog-label">${progressLabel(q)}</div>
+    </div>
+  `).join('');
+}
+
+async function init() {
+  const data = await window.pawback.getQuests();
+  render(data);
+}
+
+window.pawback.onQuestUpdate((data) => render(data));
+
+init();
+</script>
+</body>
+</html>

@@ -39,4 +39,13 @@ contextBridge.exposeInMainWorld('pawback', {
   getSessionStats:     () => ipcRenderer.invoke('get-session-stats'),
   getRunningProcesses: () => ipcRenderer.invoke('get-running-processes'),
   getBossMode:         () => ipcRenderer.invoke('get-boss-mode'),
+  getQuests:           () => ipcRenderer.invoke('get-quests'),
+  openQuestboard:      () => ipcRenderer.send('open-questboard'),
+  onQuestUpdate:       (cb) => safeOn('quest-update',      (e, data) => cb(data)),
+  onTimelineUpdate:    (cb) => safeOn('timeline-update',   (e, data) => cb(data)),
+  getTimeline:         () => ipcRenderer.invoke('get-timeline'),
+  onMoodCheckin:       (cb) => safeOn('mood-checkin',   ()        => cb()),
+  sendMoodResponse:    (mood) => ipcRenderer.send('mood-response', mood),
+  onMoodUpdate:        (cb) => safeOn('mood-update',    (e, data) => cb(data)),
+  getMoodLog:          () => ipcRenderer.invoke('get-mood-log'),
 });

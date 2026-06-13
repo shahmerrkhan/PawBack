@@ -10,7 +10,7 @@ const SETTINGS_PATH = path.join(__dirname, 'settings.json');
 function loadSettings() {
   try {
     return JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf-8'));
-  } catch {
+  } catch (e) {
     return {
       allowedApps: ['Code', 'opera', 'explorer'],
       pet: 'cat.svg',
@@ -130,7 +130,7 @@ async function captureScreenBase64() {
     const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 1024, height: 640 } });
     if (!sources.length) return null;
     return sources[0].thumbnail.toJPEG(70).toString('base64');
-  } catch {
+  } catch (e) {
     return null;
   }
 }
@@ -193,7 +193,7 @@ async function groqRequest(body) {
       res.on('data', c => data += c);
       res.on('end', () => {
         try { resolve(JSON.parse(data).choices?.[0]?.message?.content?.trim() || null); }
-        catch { resolve(null); }
+        catch (e) { resolve(null); }
       });
     });
     req.on('error', () => resolve(null));
@@ -215,7 +215,7 @@ async function fetchAiMessage() {
       ],
     });
     lastAiMessage = msg || randomFallback();
-  } catch {
+  } catch (e) {
     lastAiMessage = randomFallback();
   }
 }
@@ -240,8 +240,121 @@ async function fetchEncouragement(bucket) {
 
 fetchAiMessage();
 
+// ── Daily Quests ──
+const QUEST_FALLBACKS = [
+  { id: 'q1', type: 'focus_minutes',      text: 'Stay focused for 30 minutes',     target: 30,  progress: 0, done: false },
+  { id: 'q2', type: 'stay_under_pounces', text: 'Keep pounces under 3 today',       target: 3,   progress: 0, done: false },
+  { id: 'q3', type: 'no_break_streak',    text: 'Take zero unplanned breaks today', target: 0,   progress: 0, done: false },
+];
+
+async function generateDailyQuests() {
+  const today = todayKey();
+  if (settings.questDate === today && settings.quests && settings.quests.length === 3) return;
+
+  // Reset progress for new day
+  settings.questDate = today;
+  let quests = null;
+
+  try {
+    const raw = await groqRequest({
+      model: 'llama3-8b-8192',
+      max_tokens: 300,
+      messages: [
+        {
+          role: 'system',
+          content: `You generate daily focus quests for a productivity cat app. Return ONLY a JSON array of exactly 3 quest objects with these fields: id (q1/q2/q3), type (one of: focus_minutes, stay_under_pounces, no_break_streak), text (short fun quest description under 10 words), target (number: minutes for focus_minutes, max pounces for stay_under_pounces, 0 for no_break_streak). No markdown, no explanation, just the raw JSON array.`
+        },
+        {
+          role: 'user',
+          content: `Generate 3 varied daily focus quests. Make them achievable but slightly challenging. For focus_minutes use targets between 20-60. For stay_under_pounces use targets between 2-5.`
+        }
+      ],
+    });
+    if (raw) {
+      const cleaned = raw.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed) && parsed.length === 3) {
+        quests = parsed.map((q, i) => ({ ...q, id: `q${i+1}`, progress: 0, done: false }));
+      }
+    }
+    } catch (e) { /* fall through to fallback */ }
+    
+  settings.quests = quests || QUEST_FALLBACKS.map(q => ({ ...q, progress: 0, done: false }));
+  saveSettings(settings);
+}
+
+function updateQuestProgress() {
+  if (!settings.quests || !settings.quests.length) return;
+  let changed = false;
+
+  settings.quests.forEach(q => {
+    if (q.done) return;
+    let newProgress = q.progress;
+
+    if      (q.type === 'focus_minutes')      newProgress = Math.floor(focusSeconds / 60);
+    else if (q.type === 'stay_under_pounces') newProgress = pounceCount;
+    else if (q.type === 'no_break_streak')    newProgress = breaksTaken;
+
+    if (newProgress !== q.progress) { q.progress = newProgress; changed = true; }
+
+    // Check completion
+    let completed = false;
+    if      (q.type === 'focus_minutes')      completed = q.progress >= q.target;
+    else if (q.type === 'stay_under_pounces') completed = false; // checked at end of day
+    else if (q.type === 'no_break_streak')    completed = false; // checked at end of day
+
+    if (completed && !q.done) {
+      q.done = true;
+      changed = true;
+      awardQuestXP(q);
+    }
+  });
+
+  if (changed) {
+    saveSettings(settings);
+    broadcastQuestUpdate();
+  }
+}
+
+function checkEndOfDayQuests() {
+  if (!settings.quests || !settings.quests.length) return;
+  settings.quests.forEach(q => {
+    if (q.done) return;
+    if (q.type === 'stay_under_pounces' && pounceCount <= q.target) {
+      q.done = true;
+      awardQuestXP(q);
+    }
+    if (q.type === 'no_break_streak' && breaksTaken === 0) {
+      q.done = true;
+      awardQuestXP(q);
+    }
+  });
+  saveSettings(settings);
+}
+
+function awardQuestXP(quest) {
+  settings.totalXP = (settings.totalXP || 0) + 50;
+  const newLevel = Math.floor(settings.totalXP / 200) + 1;
+  const leveledUp = newLevel > (settings.level || 1);
+  settings.level = newLevel;
+  adjustHealth(5);
+  saveSettings(settings);
+
+  const msg = leveledUp
+    ? `Quest done! Level up! Now Level ${settings.level} 🎉`
+    : `Quest complete! +50 XP 🐾`;
+  if (peekWindow && !peekWindow.isDestroyed()) peekWindow.webContents.send('show-bubble', msg);
+  broadcastQuestUpdate();
+}
+
+function broadcastQuestUpdate() {
+  const payload = { quests: settings.quests, totalXP: settings.totalXP, level: settings.level };
+  if (questboardWindow && !questboardWindow.isDestroyed()) questboardWindow.webContents.send('quest-update', payload);
+  if (dashboardWindow  && !dashboardWindow.isDestroyed())  dashboardWindow.webContents.send('quest-update', payload);
+}
+
 // ── Session state ──
-let peekWindow, pounceWindow, dashboardWindow, reportCardWindow, tray;
+let peekWindow, pounceWindow, dashboardWindow, reportCardWindow, questboardWindow, tray;
 
 const sessionStart = Date.now();
 let breaksTaken    = 0;
@@ -260,8 +373,16 @@ let explorerSince    = null;
 let lastEncouragementAt = 0;
 let strayReasons = {};
 let inPomodoroCountdown = false;
+let lastMoodCheckAt = 0;
+let moodLog = []; // { time, mood } entries this session
+let focusTimeline = []; // one entry per minute: 'focused' | 'pounced' | 'on-break' | 'idle'
+let timelineMinuteCounter = 0;
 
 if (settings.petHealth === undefined) settings.petHealth = 70;
+if (settings.totalXP   === undefined) settings.totalXP   = 0;
+if (settings.level     === undefined) settings.level     = 1;
+if (!settings.questDate)              settings.questDate  = '';
+if (!settings.quests)                 settings.quests     = [];
 let petHealth = settings.petHealth;
 let healthFocusCounter = 0;
 
@@ -328,6 +449,11 @@ async function maybeShowEncouragement() {
     const msg = await fetchEncouragement(bucket);
     if (peekWindow && !peekWindow.isDestroyed()) peekWindow.webContents.send('show-bubble', msg);
   }
+  // Mood check-in every 30 min of focus
+  if (focusSeconds > 0 && focusSeconds % (30 * 60) === 0 && now - lastMoodCheckAt > 60000) {
+    lastMoodCheckAt = now;
+    if (peekWindow && !peekWindow.isDestroyed()) peekWindow.webContents.send('mood-checkin');
+  }
 }
 
 // ── Windows ──
@@ -354,6 +480,17 @@ function createPounceWindow() {
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
   });
   pounceWindow.loadFile('pounce.html');
+}
+
+function createQuestboardWindow() {
+  if (questboardWindow && !questboardWindow.isDestroyed()) { questboardWindow.focus(); return; }
+  questboardWindow = new BrowserWindow({
+    width: 520, height: 620, title: 'Daily Quests',
+    resizable: false,
+    webPreferences: { preload: path.join(__dirname, 'preload.js') },
+  });
+  questboardWindow.loadFile('questboard.html');
+  questboardWindow.on('closed', () => { questboardWindow = null; });
 }
 
 function createDashboardWindow() {
@@ -423,8 +560,22 @@ function tick() {
     }
   }
 
-  if (!appName) return;
+  // Timeline: record once per 60 ticks (1 min)
+  timelineMinuteCounter++;
+  if (timelineMinuteCounter >= 60) {
+    timelineMinuteCounter = 0;
+    let cell = 'idle';
+    if (onBreak)                                        cell = 'on-break';
+    else if (awaitingResponse)                          cell = 'pounced';
+    else if (settings.allowedApps.includes(appName))   cell = 'focused';
+    focusTimeline.push(cell);
+    if (focusTimeline.length > 480) focusTimeline.shift(); // max 8 hours
+    if (dashboardWindow && !dashboardWindow.isDestroyed())
+      dashboardWindow.webContents.send('timeline-update', focusTimeline);
+  }
 
+  if (!appName) return;
+  
   if (isPaused) {
     if (now >= pauseEndsAt) isPaused = false;
     else { hidePounce(); return; }
@@ -466,6 +617,7 @@ function tick() {
     lastBlockedPounce = true;
     pounceCount++;
     adjustHealth(-10);
+    flushStatsToHistory();
     playSound('pounce.wav');
     if (peekWindow && !peekWindow.isDestroyed()) peekWindow.webContents.send('pre-pounce');
 
@@ -503,6 +655,7 @@ function tick() {
     awaitingResponse = true;
     pounceCount++;
     adjustHealth(-6);
+    flushStatsToHistory();
     playSound('pounce.wav');
     if (peekWindow && !peekWindow.isDestroyed()) peekWindow.webContents.send('pre-pounce');
 
@@ -548,6 +701,7 @@ function startBreak() {
   breaksTaken++;
   awaitingResponse = false;
   hidePounce();
+  flushStatsToHistory();
 }
 
 function switchToApp(appName) {
@@ -611,11 +765,15 @@ ipcMain.on('snooze-app', (event, { appName, minutes }) => {
 });
 
 ipcMain.handle('get-settings',      () => ({ ...settings, petHealth }));
-ipcMain.handle('get-session-stats', () => sessionSnapshot || {
-  pounceCount,
-  breaksTaken,
-  sessionMinutes: Math.floor((Date.now() - sessionStart) / 60000),
-  focusMinutes:   Math.floor(focusSeconds / 60),
+ipcMain.handle('get-session-stats', () => {
+  const key = todayKey();
+  const saved = (settings.weeklyHistory || {})[key] || { focusMinutes: 0, pounceCount: 0, breaksTaken: 0 };
+  return sessionSnapshot || {
+    pounceCount:    saved.pounceCount  + pounceCount,
+    breaksTaken:    saved.breaksTaken  + breaksTaken,
+    sessionMinutes: Math.floor((Date.now() - sessionStart) / 60000),
+    focusMinutes:   saved.focusMinutes + Math.floor(focusSeconds / 60),
+  };
 });
 
 
@@ -654,13 +812,60 @@ $all | Group-Object Name | ForEach-Object { $_.Group[0] } | Select-Object Name, 
         out.push({ proc: p.Name, friendly: p.Description || p.Name });
       }
       resolve(out);
-    } catch {
+    } catch (e) {
       resolve([]);
     }
   });
 }));
 
-ipcMain.on('close-report-card', () => { if (reportCardWindow) reportCardWindow.close(); });
+ipcMain.on('close-report-card',  () => { if (reportCardWindow) reportCardWindow.close(); });
+
+ipcMain.on('mood-response', async (event, mood) => {
+  const entry = { time: new Date().toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' }), mood };
+  moodLog.push(entry);
+
+  // Log to today's history
+  const key = todayKey();
+  if (!settings.weeklyHistory[key]) settings.weeklyHistory[key] = { focusMinutes: 0, pounceCount: 0, breaksTaken: 0 };
+  if (!settings.weeklyHistory[key].moods) settings.weeklyHistory[key].moods = [];
+  settings.weeklyHistory[key].moods.push(entry);
+  saveSettings(settings);
+
+  // Respond based on mood
+  const responses = {
+    '💪': ['Absolute beast mode. Keep going. 🔥', 'Nothing can stop you right now 🚀', 'This is what locked in looks like 💪'],
+    '😊': ['Good vibes only, keep it up! 🌟', 'Happy cat, happy you 🐾', 'Smooth sailing ✨'],
+    '😴': null, // triggers break offer
+    '😤': ['Breathe. You got this. 💙', 'Channel that energy into the work 💪', 'Stressed but still here? That\'s strength 🐾'],
+  };
+
+  if (mood === '😴') {
+    // suggest a break
+    if (peekWindow && !peekWindow.isDestroyed()) peekWindow.webContents.send('show-bubble', 'You seem tired — maybe take a short break? 😴');
+  } else {
+    const pool = responses[mood];
+    if (pool) {
+      const msg = pool[Math.floor(Math.random() * pool.length)];
+      // try groq for a personalised response
+      const ai = await groqRequest({
+        model: 'llama3-8b-8192', max_tokens: 40,
+        messages: [
+          { role: 'system', content: `You are a cute cat mascot. The user said they feel ${mood}. Respond in ONE short encouraging sentence, max 10 words, with an emoji. No quotes.` },
+          { role: 'user', content: 'React to my mood.' },
+        ],
+      });
+      if (peekWindow && !peekWindow.isDestroyed()) peekWindow.webContents.send('show-bubble', ai || msg);
+    }
+  }
+
+  // Broadcast updated mood log to dashboard
+  if (dashboardWindow && !dashboardWindow.isDestroyed()) dashboardWindow.webContents.send('mood-update', moodLog);
+});
+
+ipcMain.handle('get-mood-log', () => moodLog);
+ipcMain.on('open-questboard',    () => createQuestboardWindow());
+ipcMain.handle('get-quests',     () => ({ quests: settings.quests, totalXP: settings.totalXP, level: settings.level }));
+ipcMain.handle('get-timeline',   () => focusTimeline);
 ipcMain.on('open-dashboard',    () => createDashboardWindow());
 
 ipcMain.on('save-settings', (event, newSettings) => {
@@ -675,6 +880,7 @@ function rebuildTrayMenu() {
   if (!tray) return;
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Open Dashboard', click: () => createDashboardWindow() },
+    { label: '🐾 Daily Quests', click: () => createQuestboardWindow() },
     { label: `Pause ${settings.pauseDurationMin || 60} min`, click: () => {
         isPaused    = true;
         pauseEndsAt = Date.now() + (settings.pauseDurationMin || 60) * 60 * 1000;
@@ -709,8 +915,22 @@ function rebuildTrayMenu() {
 // ── History ──
 function todayKey() { return new Date().toISOString().slice(0, 10); }
 
-function recordDayHistory() {
+function flushStatsToHistory() {
+  const key = todayKey();
+  if (!settings.weeklyHistory) settings.weeklyHistory = {};
+  const existing = settings.weeklyHistory[key] || { focusMinutes: 0, pounceCount: 0, breaksTaken: 0 };
+  settings.weeklyHistory[key] = {
+    focusMinutes: existing.focusMinutes,
+    pounceCount:  existing.pounceCount  + pounceCount,
+    breaksTaken:  existing.breaksTaken  + breaksTaken,
+    reasons:      existing.reasons || {},
+  };
+  pounceCount = 0;
+  breaksTaken = 0;
   saveSettings(settings);
+}
+
+function recordDayHistory() {
   const key      = todayKey();
   if (!settings.weeklyHistory) settings.weeklyHistory = {};
   const existing = settings.weeklyHistory[key] || { focusMinutes: 0, pounceCount: 0, breaksTaken: 0 };
@@ -718,6 +938,7 @@ function recordDayHistory() {
     focusMinutes: existing.focusMinutes + Math.floor(focusSeconds / 60),
     pounceCount:  existing.pounceCount  + pounceCount,
     breaksTaken:  existing.breaksTaken  + breaksTaken,
+    reasons:      existing.reasons || {},
   };
   focusSeconds = 0;
   pounceCount  = 0;
@@ -737,7 +958,19 @@ app.whenReady().then(() => {
 
   setInterval(tick, 1000);
   setInterval(recordDayHistory, 5 * 60 * 1000);
+  setInterval(updateQuestProgress, 10000);
+  generateDailyQuests();
 
+  // Save streak on startup so crashes don't wipe it
+  const _today = todayKey();
+  const _yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  if (settings.lastActiveDate !== _today) {
+    if (settings.lastActiveDate === _yesterday) settings.streak = (settings.streak || 0) + 1;
+    else if (settings.lastActiveDate !== '') settings.streak = 1;
+    settings.lastActiveDate = _today;
+    saveSettings(settings);
+  }
+  
   const icon = nativeImage.createFromPath(path.join(__dirname, 'tray.png'));
   tray = new Tray(icon);
   tray.setToolTip('PawBack — locking you in 🐾');
@@ -757,7 +990,8 @@ app.whenReady().then(() => {
     hidePounce();
   });
   globalShortcut.register('Control+Shift+S', () => createDashboardWindow());
-
+  globalShortcut.register('Control+Shift+Q', () => createQuestboardWindow());
+  
   let quitting = false;
   app.on('before-quit', (e) => {
     const today     = todayKey();
@@ -775,8 +1009,10 @@ app.whenReady().then(() => {
       sessionMinutes: Math.floor((Date.now() - sessionStart) / 60000),
       focusMinutes:   Math.floor(focusSeconds / 60),
     };
-    recordDayHistory();
 
+    checkEndOfDayQuests();
+    recordDayHistory();
+    
     if (!quitting && sessionSnapshot.sessionMinutes >= 1) {
       e.preventDefault();
       reportCardWindow = new BrowserWindow({

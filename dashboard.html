@@ -241,6 +241,48 @@
       color: var(--text); white-space: nowrap;
     }
 
+    /* ── QUESTS ── */
+    .xp-bar-wrap { width: 100%; margin-bottom: 20px; }
+    .xp-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .xp-bar { width: 100%; height: 8px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+    .xp-fill { height: 100%; background: linear-gradient(90deg, #a78bfa, #7c3aed); border-radius: 99px; transition: width 0.5s ease; }
+    .quest-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 18px; margin-bottom: 12px;
+      transition: border-color 0.3s;
+    }
+    .quest-card.done { border-color: var(--green); opacity: 0.75; }
+    .quest-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .quest-text { font-size: 14px; font-weight: 500; flex: 1; }
+    .quest-badge {
+      font-size: 11px; padding: 3px 9px; border-radius: 99px;
+      background: var(--surface2); color: #a78bfa; white-space: nowrap; margin-left: 10px;
+    }
+    .quest-card.done .quest-badge { background: rgba(92,219,149,0.15); color: var(--green); }
+    .quest-prog-bar { width: 100%; height: 6px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+    .quest-prog-fill { height: 100%; background: linear-gradient(90deg, #818cf8, #a78bfa); border-radius: 99px; transition: width 0.4s ease; }
+    .quest-card.done .quest-prog-fill { background: linear-gradient(90deg, var(--green), #22c55e); }
+    .quest-prog-label { font-size: 11px; color: var(--muted); margin-top: 5px; text-align: right; }
+
+    /* ── FOCUS REPLAY HEATMAP ── */
+    .heatmap-wrap { margin-top: 8px; }
+    .heatmap-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, 12px);
+      gap: 3px; margin-bottom: 10px;
+    }
+    .hm-cell {
+      width: 12px; height: 12px; border-radius: 3px;
+      cursor: default; transition: transform 0.1s;
+    }
+    .hm-cell:hover { transform: scale(1.4); }
+    .hm-cell.focused    { background: var(--green); }
+    .hm-cell.pounced    { background: var(--coral); }
+    .hm-cell.on-break   { background: var(--amber); opacity: 0.6; }
+    .hm-cell.idle       { background: var(--surface2); }
+    .heatmap-legend { display: flex; gap: 14px; flex-wrap: wrap; }
+    .hm-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+    .hm-dot { width: 10px; height: 10px; border-radius: 2px; }
+
     /* scrollbar */
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -262,6 +304,7 @@
     <div class="tab" data-page="shortcuts"><span class="tab-icon">⌨️</span> Shortcuts</div>
     <div class="tab" data-page="history"><span class="tab-icon">📅</span> History</div>
     <div class="tab" data-page="pomodoro"><span class="tab-icon">🍅</span> Pomodoro</div>
+    <div class="tab" data-page="quests"><span class="tab-icon">🎯</span> Quests</div>
   </nav>
   <div class="sidebar-footer">Runs in background.<br>Close anytime.</div>
 </div>
@@ -405,20 +448,43 @@
     <h2>Weekly History</h2>
     <p class="page-sub">Last 7 days of focus data.</p>
     <div class="graph-card">
+      <div class="graph-title">🔴 Focus Replay — today's timeline</div>
+      <div class="heatmap-wrap">
+        <div class="heatmap-grid" id="heatmapGrid"></div>
+        <div class="heatmap-legend">
+          <div class="hm-legend-item"><div class="hm-dot" style="background:var(--green)"></div> Focused</div>
+          <div class="hm-legend-item"><div class="hm-dot" style="background:var(--coral)"></div> Pounced</div>
+          <div class="hm-legend-item"><div class="hm-dot" style="background:var(--amber);opacity:.6"></div> Break</div>
+          <div class="hm-legend-item"><div class="hm-dot" style="background:var(--surface2)"></div> Idle</div>
+        </div>
+      </div>
+    </div>
+    <div class="graph-card">
       <div class="graph-title">Focus minutes per day</div>
       <div class="bar-chart" id="weeklyChart" style="height:100px;align-items:flex-end;"></div>
       <div class="graph-legend" style="margin-top:12px;">
         <div class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span>Focused</div>
       </div>
     </div>
-    <div class="card">
-      <div class="card" style="margin-bottom:14px;">
+    <div class="card" style="margin-bottom:14px;">
       <div class="card-label">🐾 Pet Health</div>
-      <div style="background:var(--surface);border-radius:8px;height:14px;margin-top:8px;overflow:hidden;">
+      <div style="background:var(--surface2);border-radius:8px;height:14px;margin-top:8px;overflow:hidden;">
         <div id="petHealthBar" style="height:100%;width:70%;background:var(--amber);transition:width 0.4s, background 0.4s;"></div>
       </div>
       <div id="petHealthText" style="font-size:13px;color:var(--muted);margin-top:6px;">Thriving (70)</div>
     </div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-label">📅 This week</div>
+      <div id="weekSummary" style="font-size:14px;color:var(--muted);margin-top:4px;">—</div>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-label">🐾 Pet Health</div>
+      <div style="background:var(--surface2);border-radius:8px;height:14px;margin-top:8px;overflow:hidden;">
+        <div id="petHealthBar" style="height:100%;width:70%;background:var(--amber);transition:width 0.4s, background 0.4s;"></div>
+      </div>
+      <div id="petHealthText" style="font-size:13px;color:var(--muted);margin-top:6px;">Thriving (70)</div>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
       <div class="card-label">📅 This week</div>
       <div id="weekSummary" style="font-size:14px;color:var(--muted);margin-top:4px;">—</div>
     </div>
@@ -473,6 +539,32 @@
       <div class="shortcut-desc">Open this dashboard<small>Works even when the window is closed</small></div>
       <div class="kbd"><span class="key">Ctrl</span><span class="key">Shift</span><span class="key">S</span></div>
     </div>
+    <div class="shortcut-row">
+      <div class="shortcut-desc">Open Daily Quests<small>See your quests, XP, and level</small></div>
+      <div class="kbd"><span class="key">Ctrl</span><span class="key">Shift</span><span class="key">Q</span></div>
+    </div>
+  </div>
+
+<!-- QUESTS -->
+  <div class="page" id="quests">
+    <h2>Daily Quests</h2>
+    <p class="page-sub" id="questDateLabel">Loading...</p>
+
+    <div class="xp-bar-wrap">
+      <div class="xp-meta">
+        <span id="dashLevelLabel">Level 1</span>
+        <span id="dashXpLabel">0 / 200 XP</span>
+      </div>
+      <div class="xp-bar"><div class="xp-fill" id="dashXpFill" style="width:0%"></div></div>
+    </div>
+
+    <div id="dashQuestsContainer">
+      <div style="color:var(--muted);font-size:14px;">Loading quests...</div>
+    </div>
+
+    <div style="font-size:12px;color:var(--muted);margin-top:16px;padding:12px 14px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border);">
+      🎯 Quests reset daily · +50 XP each · Quest XP levels up your cat
+    </div>
   </div>
 
 </div>
@@ -496,8 +588,6 @@ const FRIENDLY_NAMES = {
     'POWERPNT': 'PowerPoint', 'steam': 'Steam', 'WhatsApp': 'WhatsApp',
     'Telegram': 'Telegram', 'slack': 'Slack', 'Teams': 'Microsoft Teams',
   };
-  function friendly(p) { return FRIENDLY_NAMES[p] || p; }
-
   // ── State ──
   let selectedPet  = 'cat.svg';
   let selectedTone = 'sassy';
@@ -506,7 +596,7 @@ const FRIENDLY_NAMES = {
   let allowedApps  = [];
   let blockedApps  = [];
   let nameMap      = {};
-  function friendly(p) { return nameMap[p] || p; }
+  function friendly(p) { return nameMap[p] || FRIENDLY_NAMES[p] || p; }
   let allProcs     = [];
   let snapshots    = [], lastFocus = 0, lastSession = 0;
 
@@ -518,7 +608,8 @@ const FRIENDLY_NAMES = {
       tab.classList.add('active');
       setTimeout(() => document.getElementById(tab.dataset.page).classList.add('active'), 30);
       if (tab.dataset.page === 'stats')   refreshStats();
-      if (tab.dataset.page === 'history') renderWeeklyChart();
+      if (tab.dataset.page === 'history') { renderWeeklyChart(); renderHeatmap(); loadMoodLog(); }
+      if (tab.dataset.page === 'quests')  loadQuests();
     });
   });
 
@@ -571,10 +662,9 @@ const FRIENDLY_NAMES = {
   window.pawback.onMuteChanged(v => { soundMuted = v; syncMuteUI(); });
 
   // ── Allowed apps ──
-async function loadProcs() {
+  async function loadProcs() {
     allProcs = await window.pawback.getRunningProcesses();
-    async function loadProcs() { allProcs = await window.pawback.getRunningProcesses(); }
-  } 
+  }
   
   function renderTags() {
     const list = document.getElementById('tagList');
@@ -798,6 +888,9 @@ async function loadProcs() {
     bossMode = await window.pawback.getBossMode();
     syncBossUI();
     updatePetHealthUI(s.petHealth ?? 70);
+    await loadQuests();
+    await loadTimeline();
+    await loadMoodLog();
   }
 
   setInterval(refreshStats, 30000);
@@ -845,6 +938,102 @@ async function loadProcs() {
   document.getElementById('pomStartBtn').addEventListener('click', startPom);
   document.getElementById('pomStopBtn').addEventListener('click',  stopPom);
   document.getElementById('bossModeBtn').addEventListener('click', toggleBoss);
+
+  // ── Quests ──
+  function questTypeLabel(type) {
+    if (type === 'focus_minutes')      return 'Focus';
+    if (type === 'stay_under_pounces') return 'Discipline';
+    if (type === 'no_break_streak')    return 'No Breaks';
+    return 'Quest';
+  }
+  function questProgressPct(q) {
+    if (q.done) return 100;
+    if (q.type === 'focus_minutes')      return Math.min(100, Math.round((q.progress / q.target) * 100));
+    if (q.type === 'stay_under_pounces') return Math.max(0, Math.round((1 - q.progress / (q.target + 1)) * 100));
+    if (q.type === 'no_break_streak')    return q.progress === 0 ? 80 : 0;
+    return 0;
+  }
+  function questProgressLabel(q) {
+    if (q.done) return 'Complete ✓';
+    if (q.type === 'focus_minutes')      return `${q.progress} / ${q.target} min`;
+    if (q.type === 'stay_under_pounces') return `${q.progress} pounces (limit: ${q.target})`;
+    if (q.type === 'no_break_streak')    return q.progress === 0 ? 'No breaks yet 💪' : `${q.progress} break(s) taken`;
+    return '';
+  }
+  function renderDashQuests({ quests, totalXP, level }) {
+    const xpInLevel = (totalXP || 0) % 200;
+    document.getElementById('dashLevelLabel').textContent = `Level ${level || 1}`;
+    document.getElementById('dashXpLabel').textContent    = `${xpInLevel} / 200 XP`;
+    document.getElementById('dashXpFill').style.width     = Math.round((xpInLevel / 200) * 100) + '%';
+    document.getElementById('questDateLabel').textContent =
+      new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' });
+    const container = document.getElementById('dashQuestsContainer');
+    if (!quests || !quests.length) {
+      container.innerHTML = '<div style="color:var(--muted);font-size:14px;">No quests yet — they generate on startup.</div>';
+      return;
+    }
+    container.innerHTML = quests.map(q => `
+      <div class="quest-card ${q.done ? 'done' : ''}">
+        <div class="quest-top">
+          <span class="quest-text">${q.text}</span>
+          <span class="quest-badge">${questTypeLabel(q.type)}</span>
+        </div>
+        <div class="quest-prog-bar"><div class="quest-prog-fill" style="width:${questProgressPct(q)}%"></div></div>
+        <div class="quest-prog-label">${questProgressLabel(q)}</div>
+      </div>
+    `).join('');
+  }
+  async function loadQuests() {
+    const data = await window.pawback.getQuests();
+    renderDashQuests(data);
+  }
+  async function loadTimeline() {
+    window._focusTimeline = await window.pawback.getTimeline();
+  }
+  window.pawback.onTimelineUpdate(data => {
+    window._focusTimeline = data;
+    if (document.getElementById('history').classList.contains('active')) renderHeatmap();
+  });
+  window.pawback.onQuestUpdate(data => renderDashQuests(data));
+
+  // ── Focus Replay heatmap ──
+  function renderHeatmap() {
+    const grid = document.getElementById('heatmapGrid');
+    if (!grid) return;
+    const timeline = window._focusTimeline || [];
+    if (!timeline.length) {
+      grid.style.display = 'block';
+      grid.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:4px 0;">No data yet — check back after a few minutes of use.</div>';
+      return;
+    }
+    grid.style.display = '';
+    grid.innerHTML = timeline.map((cell, i) => {
+      const title = `Min ${i + 1}: ${cell}`;
+      return `<div class="hm-cell ${cell}" title="${title}"></div>`;
+    }).join('');
+  }
+
+  // ── Mood log ──
+  function renderMoodTimeline(log) {
+    const el = document.getElementById('moodTimeline');
+    if (!el) return;
+    if (!log || !log.length) return;
+    el.innerHTML = log.map(entry => `
+      <div title="${entry.time}" style="
+        display:flex;flex-direction:column;align-items:center;gap:2px;
+        background:var(--surface2);border-radius:8px;padding:6px 8px;
+        font-size:10px;color:var(--muted);
+      ">
+        <span style="font-size:20px;">${entry.mood}</span>
+        <span>${entry.time}</span>
+      </div>
+    `).join('');
+  }
+  async function loadMoodLog() {
+    const log = await window.pawback.getMoodLog();
+    renderMoodTimeline(log);
+  }
+  window.pawback.onMoodUpdate(data => renderMoodTimeline(data));
 
   // ── Init ──
   load();
