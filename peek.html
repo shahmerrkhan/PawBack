@@ -77,9 +77,9 @@
     }
 
     .bubble {
-      position: absolute;
-      bottom: 148px;
-      right: 0;
+      position: fixed;
+      bottom: 155px;
+      right: 4px;
       background: #1c1c1c;
       color: #f0ece4;
       font-family: sans-serif;
@@ -254,5 +254,44 @@
       hoverTimeout = setTimeout(() => bubble.classList.remove('show'), duration);
     }
   </script>
+  <script>
+  let dragging = false, startX, startY, winStartX, winStartY, posReady = false;
+
+  document.addEventListener('mousedown', (e) => {
+    if (e.button !== 1 && e.button !== 2) return; // middle or right click to drag
+    e.preventDefault();
+    posReady = false;
+    window.pawback.getWindowPosition().then(pos => {
+      winStartX = pos.x;
+      winStartY = pos.y;
+      startX = e.screenX;
+      startY = e.screenY;
+      posReady = true;
+      dragging = true;
+    });
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging || !posReady) return;
+    const dx = e.screenX - startX;
+    const dy = e.screenY - startY;
+    window.pawback.movePeekWindow(winStartX + dx, winStartY + dy);
+  });
+
+  document.addEventListener('mouseup', (e) => {
+    if (!dragging || (e.button !== 1 && e.button !== 2)) return;
+    dragging = false;
+    posReady = false;
+    const dx = e.screenX - startX;
+    const dy = e.screenY - startY;
+    window.pawback.savePeekPosition(winStartX + dx, winStartY + dy);
+  });
+
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  // block file drops
+  document.addEventListener('dragover',  (e) => e.preventDefault());
+  document.addEventListener('drop',      (e) => e.preventDefault());  
+</script>
 </body>
 </html>

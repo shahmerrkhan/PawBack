@@ -283,6 +283,22 @@
     .hm-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
     .hm-dot { width: 10px; height: 10px; border-radius: 2px; }
 
+    /* ── PERSONA ── */
+    .persona-wrap { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
+    .persona-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      display: flex; align-items: flex-start; gap: 14px;
+      transition: border-color 0.2s;
+    }
+    .persona-card:hover { border-color: #3a3a3a; }
+    .persona-emoji { font-size: 28px; flex-shrink: 0; line-height: 1; margin-top: 2px; }
+    .persona-label { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 3px; }
+    .persona-desc  { font-size: 13px; color: var(--muted); line-height: 1.4; }
+    .persona-empty { font-size: 13px; color: var(--muted); padding: 8px 0; }
+
     /* scrollbar */
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -363,6 +379,13 @@
         <div id="goalBar" style="height:100%;background:var(--green);width:0%;border-radius:99px;transition:width 0.6s cubic-bezier(0.34,1.2,0.64,1);"></div>
       </div>
     </div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-label">🧬 Your Focus Persona</div>
+      <div id="personaWrap" class="persona-wrap" style="margin-top:12px;">
+        <div class="persona-empty">Loading your persona...</div>
+      </div>
+    </div>
+
     <div class="graph-card">
       <div class="graph-title">Focus vs distracted — this session</div>
       <div class="bar-chart" id="barChart"></div>
@@ -543,6 +566,15 @@
       <div class="shortcut-desc">Open Daily Quests<small>See your quests, XP, and level</small></div>
       <div class="kbd"><span class="key">Ctrl</span><span class="key">Shift</span><span class="key">Q</span></div>
     </div>
+    <p class="page-sub" style="margin-top:24px;">Pet interactions.</p>
+    <div class="shortcut-row">
+      <div class="shortcut-desc">Open dashboard<small>Left click the pet</small></div>
+      <div class="kbd"><span class="key">🖱️ Left Click</span></div>
+    </div>
+    <div class="shortcut-row">
+      <div class="shortcut-desc">Move pet around screen<small>Right click + hold + drag, then release to drop</small></div>
+      <div class="kbd"><span class="key">🖱️ Right Click drag</span></div>
+    </div>
   </div>
 
 <!-- QUESTS -->
@@ -607,7 +639,7 @@ const FRIENDLY_NAMES = {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
       setTimeout(() => document.getElementById(tab.dataset.page).classList.add('active'), 30);
-      if (tab.dataset.page === 'stats')   refreshStats();
+      if (tab.dataset.page === 'stats')   { refreshStats(); loadPersona(); }
       if (tab.dataset.page === 'history') { renderWeeklyChart(); renderHeatmap(); loadMoodLog(); }
       if (tab.dataset.page === 'quests')  loadQuests();
     });
@@ -891,6 +923,7 @@ const FRIENDLY_NAMES = {
     await loadQuests();
     await loadTimeline();
     await loadMoodLog();
+    await loadPersona();;
   }
 
   setInterval(refreshStats, 30000);
@@ -1034,6 +1067,26 @@ const FRIENDLY_NAMES = {
     renderMoodTimeline(log);
   }
   window.pawback.onMoodUpdate(data => renderMoodTimeline(data));
+
+  // ── Persona ──
+  async function loadPersona() {
+    const data = await window.pawback.getPersona();
+    const wrap = document.getElementById('personaWrap');
+    if (!wrap) return;
+    if (!data || !data.traits || !data.traits.length) {
+      wrap.innerHTML = '<div class="persona-empty">Keep using PawBack — your focus persona builds up over time 🐾</div>';
+      return;
+    }
+    wrap.innerHTML = data.traits.map(t => `
+      <div class="persona-card">
+        <div class="persona-emoji">${t.emoji}</div>
+        <div>
+          <div class="persona-label">${t.label}</div>
+          <div class="persona-desc">${t.desc}</div>
+        </div>
+      </div>
+    `).join('');
+  }
 
   // ── Init ──
   load();

@@ -291,7 +291,7 @@ function updateQuestProgress() {
     if (q.done) return;
     let newProgress = q.progress;
 
-    if      (q.type === 'focus_minutes')      newProgress = Math.floor(focusSeconds / 60);
+    if      (q.type === 'focus_minutes')      newProgress = (((settings.weeklyHistory || {})[todayKey()] || {}).focusMinutes || 0) + Math.floor(focusSeconds / 60);
     else if (q.type === 'stay_under_pounces') newProgress = pounceCount;
     else if (q.type === 'no_break_streak')    newProgress = breaksTaken;
 
@@ -375,6 +375,9 @@ let strayReasons = {};
 let inPomodoroCountdown = false;
 let lastMoodCheckAt = 0;
 let moodLog = []; // { time, mood } entries this session
+let hourlyFocus   = new Array(24).fill(0); // minutes focused per hour of day
+let hourlyPounces = new Array(24).fill(0); // pounces per hour of day
+let pounceTimestamps = []; // ms timestamps of each pounce this session
 let focusTimeline = []; // one entry per minute: 'focused' | 'pounced' | 'on-break' | 'idle'
 let timelineMinuteCounter = 0;
 
@@ -464,9 +467,14 @@ function createPeekWindow() {
     x: width - 100, y: height - 190,
     frame: false, transparent: true,
     alwaysOnTop: true, skipTaskbar: true,
-    resizable: false, focusable: false,
+    resizable: false, focusable: true,
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
   });
+  peekWindow.webContents.on('will-navigate', (e) => e.preventDefault());
+  peekWindow.webContents.session.on('will-download', (e) => e.preventDefault());
+  if (settings.peekX !== undefined && settings.peekY !== undefined) {
+    peekWindow.setPosition(settings.peekX, settings.peekY);
+  }
   peekWindow.loadFile('peek.html');
 }
 
@@ -494,7 +502,11 @@ function createQuestboardWindow() {
 }
 
 function createDashboardWindow() {
-  if (dashboardWindow) { dashboardWindow.focus(); return; }
+  if (dashboardWindow && !dashboardWindow.isDestroyed()) {
+    if (dashboardWindow.isMinimized()) dashboardWindow.restore();
+    dashboardWindow.focus();
+    return;
+  }
   dashboardWindow = new BrowserWindow({
     width: 700, height: 580, title: 'PawBack',
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
@@ -613,11 +625,13 @@ function tick() {
     }
     if (now - explorerSince < 10000) return;
 
-    awaitingResponse  = true;
+   awaitingResponse  = true;
     lastBlockedPounce = true;
     pounceCount++;
     adjustHealth(-10);
     flushStatsToHistory();
+    hourlyPounces[new Date().getHours()]++;
+    pounceTimestamps.push(Date.now());
     playSound('pounce.wav');
     if (peekWindow && !peekWindow.isDestroyed()) peekWindow.webContents.send('pre-pounce');
 
@@ -636,6 +650,7 @@ function tick() {
     if (!internalApps.includes(appName) && !isAppSnoozed(appName)) {
       focusSeconds++;
       healthFocusCounter++;
+      if (focusSeconds % 60 === 0) hourlyFocus[new Date().getHours()]++;
       if (healthFocusCounter >= 60) {
         healthFocusCounter = 0;
         adjustHealth(2);
@@ -656,6 +671,8 @@ function tick() {
     pounceCount++;
     adjustHealth(-6);
     flushStatsToHistory();
+    hourlyPounces[new Date().getHours()]++;
+    pounceTimestamps.push(Date.now());
     playSound('pounce.wav');
     if (peekWindow && !peekWindow.isDestroyed()) peekWindow.webContents.send('pre-pounce');
 
@@ -866,7 +883,30 @@ ipcMain.handle('get-mood-log', () => moodLog);
 ipcMain.on('open-questboard',    () => createQuestboardWindow());
 ipcMain.handle('get-quests',     () => ({ quests: settings.quests, totalXP: settings.totalXP, level: settings.level }));
 ipcMain.handle('get-timeline',   () => focusTimeline);
+ipcMain.handle('get-persona',    () => computePersona());
 ipcMain.on('open-dashboard',    () => createDashboardWindow());
+
+ipcMain.on('save-peek-position', (event, { x, y }) => {
+  if (peekWindow && !peekWindow.isDestroyed()) peekWindow.setPosition(x, y);
+  settings.peekX = x;
+  settings.peekY = y;
+  saveSettings(settings);
+});
+ipcMain.handle('get-window-position', () => {
+  const pos = peekWindow && !peekWindow.isDestroyed() ? peekWindow.getPosition() : [0, 0];
+  return { x: pos[0], y: pos[1] };
+});
+
+ipcMain.on('move-peek-window', (event, { x, y }) => {
+  if (peekWindow && !peekWindow.isDestroyed()) peekWindow.setPosition(x, y);
+});
+
+ipcMain.on('save-peek-position', (event, { x, y }) => {
+  if (peekWindow && !peekWindow.isDestroyed()) peekWindow.setPosition(x, y);
+  settings.peekX = x;
+  settings.peekY = y;
+  saveSettings(settings);
+});
 
 ipcMain.on('save-settings', (event, newSettings) => {
   settings = { ...settings, ...newSettings };
@@ -915,18 +955,113 @@ function rebuildTrayMenu() {
 // ── History ──
 function todayKey() { return new Date().toISOString().slice(0, 10); }
 
+function computePersona() {
+  const history = settings.weeklyHistory || {};
+  const days = Object.keys(history).sort();
+  if (days.length === 0) return null;
+
+  const traits = [];
+
+  // 1. Time-of-day identity — peak focus hour from hourlyFocus
+  const peakHour = hourlyFocus.indexOf(Math.max(...hourlyFocus));
+  const totalFocusTracked = hourlyFocus.reduce((a, b) => a + b, 0);
+  if (totalFocusTracked >= 5) {
+    if (peakHour >= 22 || peakHour <= 3)
+      traits.push({ label: 'Night Owl', emoji: '🦉', desc: `You lock in hardest after ${peakHour > 12 ? peakHour - 12 : peakHour}${peakHour >= 12 ? 'pm' : 'am'}` });
+    else if (peakHour >= 5 && peakHour <= 9)
+      traits.push({ label: 'Early Bird', emoji: '🌅', desc: `You crush it before ${peakHour + 1 > 12 ? peakHour + 1 - 12 : peakHour + 1}am` });
+    else if (peakHour >= 10 && peakHour <= 14)
+      traits.push({ label: 'Midday Machine', emoji: '☀️', desc: `Your peak window is around ${peakHour > 12 ? peakHour - 12 : peakHour}${peakHour >= 12 ? 'pm' : 'am'}` });
+    else
+      traits.push({ label: 'Afternoon Grinder', emoji: '🌆', desc: `You hit your stride in the late afternoon` });
+  }
+
+  // 2. Consistency — how many of the last 7 days had focus data
+  const last7 = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+    last7.push(history[d]?.focusMinutes || 0);
+  }
+  const activeDays = last7.filter(m => m > 0).length;
+  if (activeDays >= 6)
+    traits.push({ label: 'Iron Streak', emoji: '🔥', desc: `${activeDays}/7 days active this week` });
+  else if (activeDays >= 4)
+    traits.push({ label: 'Steady Grinder', emoji: '⚙️', desc: `${activeDays}/7 days active — building momentum` });
+  else if (activeDays <= 2 && days.length >= 3)
+    traits.push({ label: 'Comeback Pending', emoji: '💤', desc: `Only ${activeDays} active days — time to lock in` });
+
+  // 3. Pounce recovery — average time between pounce and returning to focus
+  // estimated by total session time vs focus time ratio
+  const todayData = history[todayKey()] || {};
+  const todayPounces = (todayData.pounceCount || 0) + pounceCount;
+  const todayFocus   = (todayData.focusMinutes || 0) + Math.floor(focusSeconds / 60);
+  const sessionMin   = Math.floor((Date.now() - sessionStart) / 60000);
+  if (todayPounces > 0 && sessionMin > 10) {
+    const focusRatio = todayFocus / Math.max(sessionMin, 1);
+    if (focusRatio >= 0.85)
+      traits.push({ label: 'Comeback Kid', emoji: '💪', desc: `${Math.round(focusRatio * 100)}% of session was focused — barely slowed down` });
+    else if (focusRatio < 0.4)
+      traits.push({ label: 'Distraction Magnet', emoji: '🧲', desc: `Only ${Math.round(focusRatio * 100)}% focused today — the cat is judging you` });
+  }
+
+  // 4. Volume — total weekly focus
+  const weeklyTotal = last7.reduce((a, b) => a + b, 0);
+  if (weeklyTotal >= 600)
+    traits.push({ label: 'Focus Beast', emoji: '🏆', desc: `${Math.round(weeklyTotal / 60)}h focused this week` });
+  else if (weeklyTotal >= 200)
+    traits.push({ label: 'Solid Worker', emoji: '📚', desc: `${weeklyTotal} min focused this week` });
+
+  // 5. Worst day of week
+  const dayTotals = {};
+  days.forEach(d => {
+    const dow = new Date(d).toLocaleDateString('en', { weekday: 'long' });
+    if (!dayTotals[dow]) dayTotals[dow] = { focus: 0, pounces: 0, count: 0 };
+    dayTotals[dow].focus   += history[d].focusMinutes || 0;
+    dayTotals[dow].pounces += history[d].pounceCount  || 0;
+    dayTotals[dow].count++;
+  });
+  const dowEntries = Object.entries(dayTotals).filter(([, v]) => v.count >= 2);
+  if (dowEntries.length >= 2) {
+    const worst = dowEntries.sort((a, b) => (b[1].pounces / b[1].count) - (a[1].pounces / a[1].count))[0];
+    const best  = dowEntries.sort((a, b) => (b[1].focus  / b[1].count) - (a[1].focus  / a[1].count))[0];
+    if (worst[0] !== best[0]) {
+      traits.push({ label: `${worst[0]} Menace`, emoji: '😈', desc: `${worst[0]}s are your most distracted day` });
+      traits.push({ label: `${best[0]} Warrior`, emoji: '⚔️', desc: `${best[0]}s are when you focus best` });
+    }
+  }
+
+  // 6. Hourly danger zone — worst pounce hour
+  const worstPounceHour = hourlyPounces.indexOf(Math.max(...hourlyPounces));
+  const maxPounces = Math.max(...hourlyPounces);
+  if (maxPounces >= 2) {
+    const h = worstPounceHour;
+    const label = `${h > 12 ? h - 12 : h === 0 ? 12 : h}${h >= 12 ? 'pm' : 'am'}`;
+    traits.push({ label: 'Danger Zone', emoji: '⚠️', desc: `You drift most around ${label}` });
+  }
+
+  return { traits: traits.slice(0, 4), weeklyTotal, activeDays };
+}
+
+
 function flushStatsToHistory() {
   const key = todayKey();
   if (!settings.weeklyHistory) settings.weeklyHistory = {};
   const existing = settings.weeklyHistory[key] || { focusMinutes: 0, pounceCount: 0, breaksTaken: 0 };
+  // merge hourly arrays
+  const existingHF = existing.hourlyFocus   || new Array(24).fill(0);
+  const existingHP = existing.hourlyPounces || new Array(24).fill(0);
   settings.weeklyHistory[key] = {
-    focusMinutes: existing.focusMinutes,
-    pounceCount:  existing.pounceCount  + pounceCount,
-    breaksTaken:  existing.breaksTaken  + breaksTaken,
-    reasons:      existing.reasons || {},
+    focusMinutes:  existing.focusMinutes,
+    pounceCount:   existing.pounceCount  + pounceCount,
+    breaksTaken:   existing.breaksTaken  + breaksTaken,
+    reasons:       existing.reasons || {},
+    hourlyFocus:   existingHF.map((v, i) => v + hourlyFocus[i]),
+    hourlyPounces: existingHP.map((v, i) => v + hourlyPounces[i]),
   };
   pounceCount = 0;
   breaksTaken = 0;
+  hourlyFocus   = new Array(24).fill(0);
+  hourlyPounces = new Array(24).fill(0);
   saveSettings(settings);
 }
 
@@ -934,15 +1069,21 @@ function recordDayHistory() {
   const key      = todayKey();
   if (!settings.weeklyHistory) settings.weeklyHistory = {};
   const existing = settings.weeklyHistory[key] || { focusMinutes: 0, pounceCount: 0, breaksTaken: 0 };
+  const addedMinutes = Math.floor(focusSeconds / 60);
   settings.weeklyHistory[key] = {
-    focusMinutes: existing.focusMinutes + Math.floor(focusSeconds / 60),
+    focusMinutes: existing.focusMinutes + addedMinutes,
     pounceCount:  existing.pounceCount  + pounceCount,
     breaksTaken:  existing.breaksTaken  + breaksTaken,
     reasons:      existing.reasons || {},
+    hourlyFocus:   (existing.hourlyFocus   || new Array(24).fill(0)).map((v, i) => v + hourlyFocus[i]),
+    hourlyPounces: (existing.hourlyPounces || new Array(24).fill(0)).map((v, i) => v + hourlyPounces[i]),
   };
-  focusSeconds = 0;
+  // Reset only the delta we just saved
+  focusSeconds -= addedMinutes * 60;  // keep leftover seconds
   pounceCount  = 0;
   breaksTaken  = 0;
+  hourlyFocus   = new Array(24).fill(0);
+  hourlyPounces = new Array(24).fill(0);
   const keys = Object.keys(settings.weeklyHistory).sort();
   while (keys.length > 14) delete settings.weeklyHistory[keys.shift()];
   saveSettings(settings);

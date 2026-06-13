@@ -48,4 +48,8 @@ contextBridge.exposeInMainWorld('pawback', {
   sendMoodResponse:    (mood) => ipcRenderer.send('mood-response', mood),
   onMoodUpdate:        (cb) => safeOn('mood-update',    (e, data) => cb(data)),
   getMoodLog:          () => ipcRenderer.invoke('get-mood-log'),
+  getPersona:          () => ipcRenderer.invoke('get-persona'),
+  getWindowPosition:   () => ipcRenderer.invoke('get-window-position'),
+  movePeekWindow:      (x, y) => ipcRenderer.send('move-peek-window', { x, y }),
+  savePeekPosition:    (x, y) => ipcRenderer.send('save-peek-position', { x, y }),
 });
