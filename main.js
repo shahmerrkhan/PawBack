@@ -360,6 +360,7 @@ const sessionStart = Date.now();
 let breaksTaken    = 0;
 let focusSeconds   = 0;
 let sessionSnapshot = null;
+// clear any stale snapshot from previous run
 
 let onBreak          = false;
 let breakEndsAt      = null;
@@ -1047,17 +1048,18 @@ function flushStatsToHistory() {
   const key = todayKey();
   if (!settings.weeklyHistory) settings.weeklyHistory = {};
   const existing = settings.weeklyHistory[key] || { focusMinutes: 0, pounceCount: 0, breaksTaken: 0 };
-  // merge hourly arrays
   const existingHF = existing.hourlyFocus   || new Array(24).fill(0);
   const existingHP = existing.hourlyPounces || new Array(24).fill(0);
+  const addedMinutes = Math.floor(focusSeconds / 60);
   settings.weeklyHistory[key] = {
-    focusMinutes:  existing.focusMinutes,
+    focusMinutes:  existing.focusMinutes + addedMinutes,
     pounceCount:   existing.pounceCount  + pounceCount,
     breaksTaken:   existing.breaksTaken  + breaksTaken,
     reasons:       existing.reasons || {},
     hourlyFocus:   existingHF.map((v, i) => v + hourlyFocus[i]),
     hourlyPounces: existingHP.map((v, i) => v + hourlyPounces[i]),
   };
+  focusSeconds -= addedMinutes * 60;
   pounceCount = 0;
   breaksTaken = 0;
   hourlyFocus   = new Array(24).fill(0);
@@ -1066,25 +1068,9 @@ function flushStatsToHistory() {
 }
 
 function recordDayHistory() {
-  const key      = todayKey();
-  if (!settings.weeklyHistory) settings.weeklyHistory = {};
-  const existing = settings.weeklyHistory[key] || { focusMinutes: 0, pounceCount: 0, breaksTaken: 0 };
-  const addedMinutes = Math.floor(focusSeconds / 60);
-  settings.weeklyHistory[key] = {
-    focusMinutes: existing.focusMinutes + addedMinutes,
-    pounceCount:  existing.pounceCount  + pounceCount,
-    breaksTaken:  existing.breaksTaken  + breaksTaken,
-    reasons:      existing.reasons || {},
-    hourlyFocus:   (existing.hourlyFocus   || new Array(24).fill(0)).map((v, i) => v + hourlyFocus[i]),
-    hourlyPounces: (existing.hourlyPounces || new Array(24).fill(0)).map((v, i) => v + hourlyPounces[i]),
-  };
-  // Reset only the delta we just saved
-  focusSeconds -= addedMinutes * 60;  // keep leftover seconds
-  pounceCount  = 0;
-  breaksTaken  = 0;
-  hourlyFocus   = new Array(24).fill(0);
-  hourlyPounces = new Array(24).fill(0);
-  const keys = Object.keys(settings.weeklyHistory).sort();
+  // flushStatsToHistory already saved focusSeconds/pounceCount/breaksTaken
+  // this function just trims old history and saves
+  const keys = Object.keys(settings.weeklyHistory || {}).sort();
   while (keys.length > 14) delete settings.weeklyHistory[keys.shift()];
   saveSettings(settings);
 }
@@ -1098,7 +1084,7 @@ app.whenReady().then(() => {
   createPounceWindow();
 
   setInterval(tick, 1000);
-  setInterval(recordDayHistory, 5 * 60 * 1000);
+  setInterval(flushStatsToHistory, 5 * 60 * 1000);
   setInterval(updateQuestProgress, 10000);
   generateDailyQuests();
 
@@ -1107,8 +1093,8 @@ app.whenReady().then(() => {
   const _yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
   if (settings.lastActiveDate !== _today) {
     if (settings.lastActiveDate === _yesterday) settings.streak = (settings.streak || 0) + 1;
-    else if (settings.lastActiveDate !== '') settings.streak = 1;
-    settings.lastActiveDate = _today;
+    else if (settings.lastActiveDate !== '') settings.streak = 0;
+    // don't set lastActiveDate here — set it on quit so streak only counts if you actually used it
     saveSettings(settings);
   }
   
@@ -1139,16 +1125,22 @@ app.whenReady().then(() => {
     const last      = settings.lastActiveDate;
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
 
-    if      (last === today)      { /* streak continues */ }
-    else if (last === yesterday)  settings.streak = (settings.streak || 0) + 1;
-    else                          settings.streak = 1;
-    settings.lastActiveDate = today;
+    if (last !== today) {
+      if (last === yesterday) settings.streak = (settings.streak || 0) + 1;
+      else settings.streak = 1;
+      settings.lastActiveDate = today;
+    }
 
+    // flush everything to history first
+    flushStatsToHistory();
+
+    const key = todayKey();
+    const saved = (settings.weeklyHistory || {})[key] || { focusMinutes: 0, pounceCount: 0, breaksTaken: 0 };
     sessionSnapshot = {
-      pounceCount,
-      breaksTaken,
+      pounceCount:    saved.pounceCount,
+      breaksTaken:    saved.breaksTaken,
       sessionMinutes: Math.floor((Date.now() - sessionStart) / 60000),
-      focusMinutes:   Math.floor(focusSeconds / 60),
+      focusMinutes:   saved.focusMinutes,
     };
 
     checkEndOfDayQuests();
