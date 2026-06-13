@@ -412,6 +412,13 @@
       </div>
     </div>
     <div class="card">
+      <div class="card" style="margin-bottom:14px;">
+      <div class="card-label">🐾 Pet Health</div>
+      <div style="background:var(--surface);border-radius:8px;height:14px;margin-top:8px;overflow:hidden;">
+        <div id="petHealthBar" style="height:100%;width:70%;background:var(--amber);transition:width 0.4s, background 0.4s;"></div>
+      </div>
+      <div id="petHealthText" style="font-size:13px;color:var(--muted);margin-top:6px;">Thriving (70)</div>
+    </div>
       <div class="card-label">📅 This week</div>
       <div id="weekSummary" style="font-size:14px;color:var(--muted);margin-top:4px;">—</div>
     </div>
@@ -751,6 +758,16 @@ async function loadProcs() {
     setTimeout(() => toast.classList.remove('show'), 2200);
   }
 
+  window.pawback.onPetHealth(v => updatePetHealthUI(v));
+  function updatePetHealthUI(v) {
+    const bar = document.getElementById('petHealthBar');
+    const txt = document.getElementById('petHealthText');
+    if (!bar || !txt) return;
+    bar.style.width = v + '%';
+    bar.style.background = v > 60 ? '#5cdb95' : v > 30 ? 'var(--amber)' : 'var(--coral)';
+    txt.textContent = v > 60 ? `Thriving (${v})` : v > 30 ? `Getting tired (${v})` : `Not doing great (${v}) 😿`;
+  }
+
   // ── Load ──
   async function load() {
     const s = await window.pawback.getSettings();
@@ -780,6 +797,7 @@ async function loadProcs() {
 
     bossMode = await window.pawback.getBossMode();
     syncBossUI();
+    updatePetHealthUI(s.petHealth ?? 70);
   }
 
   setInterval(refreshStats, 30000);

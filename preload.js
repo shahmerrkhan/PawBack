@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('pawback', {
   onSetScreen:       (cb) => safeOn('set-screen',      (e, type, pet, msg, extra) => cb(type, pet, msg, extra)),
   onSetMood:         (cb) => safeOn('set-mood',         (e, mood) => cb(mood)),
   onSetPet:          (cb) => safeOn('set-pet',          (e, pet)  => cb(pet)),
+  onPetHealth:       (cb) => safeOn('pet-health',        (e, v)    => cb(v)),
   onShowBubble:      (cb) => safeOn('show-bubble',      (e, msg)  => cb(msg)),
   onMuteChanged:     (cb) => safeOn('mute-changed',     (e, v)    => cb(v)),
   onPrePounce:       (cb) => safeOn('pre-pounce',       ()        => cb()),

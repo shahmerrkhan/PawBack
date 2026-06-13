@@ -261,6 +261,21 @@ let lastEncouragementAt = 0;
 let strayReasons = {};
 let inPomodoroCountdown = false;
 
+if (settings.petHealth === undefined) settings.petHealth = 70;
+let petHealth = settings.petHealth;
+let healthFocusCounter = 0;
+
+function adjustHealth(delta) {
+  petHealth = Math.max(0, Math.min(100, petHealth + delta));
+  settings.petHealth = petHealth;
+  broadcastHealth();
+}
+
+function broadcastHealth() {
+  if (peekWindow      && !peekWindow.isDestroyed())      peekWindow.webContents.send('pet-health', petHealth);
+  if (dashboardWindow && !dashboardWindow.isDestroyed()) dashboardWindow.webContents.send('pet-health', petHealth);
+}
+
 let bossMode = settings.bossMode || false;
 
 // ── Pomodoro ──
@@ -450,6 +465,7 @@ function tick() {
     awaitingResponse  = true;
     lastBlockedPounce = true;
     pounceCount++;
+    adjustHealth(-10);
     playSound('pounce.wav');
     if (peekWindow && !peekWindow.isDestroyed()) peekWindow.webContents.send('pre-pounce');
 
@@ -467,6 +483,11 @@ function tick() {
   if (allowed || isAppSnoozed(appName)) {
     if (!internalApps.includes(appName) && !isAppSnoozed(appName)) {
       focusSeconds++;
+      healthFocusCounter++;
+      if (healthFocusCounter >= 60) {
+        healthFocusCounter = 0;
+        adjustHealth(2);
+      }
       maybeShowEncouragement();
     }
     lastDetectedApp = '';
@@ -481,6 +502,7 @@ function tick() {
 
     awaitingResponse = true;
     pounceCount++;
+    adjustHealth(-6);
     playSound('pounce.wav');
     if (peekWindow && !peekWindow.isDestroyed()) peekWindow.webContents.send('pre-pounce');
 
@@ -588,7 +610,7 @@ ipcMain.on('snooze-app', (event, { appName, minutes }) => {
   hidePounce();
 });
 
-ipcMain.handle('get-settings',      () => settings);
+ipcMain.handle('get-settings',      () => ({ ...settings, petHealth }));
 ipcMain.handle('get-session-stats', () => sessionSnapshot || {
   pounceCount,
   breaksTaken,
@@ -688,6 +710,7 @@ function rebuildTrayMenu() {
 function todayKey() { return new Date().toISOString().slice(0, 10); }
 
 function recordDayHistory() {
+  saveSettings(settings);
   const key      = todayKey();
   if (!settings.weeklyHistory) settings.weeklyHistory = {};
   const existing = settings.weeklyHistory[key] || { focusMinutes: 0, pounceCount: 0, breaksTaken: 0 };

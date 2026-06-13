@@ -57,6 +57,25 @@
     .panicking  { animation: panic 0.5s ease infinite !important; }
     .wiggling   { animation: wiggle 0.3s ease 3 !important; }
 
+    /* sickness states based on petHealth */
+    .sick-mild {
+      filter: saturate(0.7) brightness(0.95);
+      animation-duration: 3.4s !important;
+    }
+    .sick-bad {
+      filter: grayscale(0.6) saturate(0.4) brightness(0.85);
+      animation-duration: 4.2s !important;
+    }
+    .sick-critical {
+      filter: grayscale(0.9) saturate(0.15) brightness(0.7);
+      animation-name: droop;
+      animation-duration: 4.5s !important;
+    }
+    @keyframes droop {
+      0%, 100% { transform: translateY(2px) scale(0.98); }
+      50%      { transform: translateY(6px) scale(0.96); }
+    }
+
     .bubble {
       position: absolute;
       bottom: 148px;
@@ -119,8 +138,37 @@
       if (mood === 'done')       img.classList.add('done');
     });
 
+    // health-based sickness look — updates live as petHealth drops
+    let lastHealthBand = null;
+    const sickBubbles = {
+      bad: ["i don't feel so good...", "🤒 ruff day", "everything hurts"],
+      critical: ["help... 😿", "i'm fading...", "please... lock in..."],
+    };
+    window.pawback.onPetHealth(v => applyHealthLook(v));
+
+    function applyHealthLook(v) {
+      img.classList.remove('sick-mild', 'sick-bad', 'sick-critical');
+      let band = 'ok';
+      if (v <= 15)      { img.classList.add('sick-critical'); band = 'critical'; }
+      else if (v <= 35) { img.classList.add('sick-bad');       band = 'bad'; }
+      else if (v <= 60) { img.classList.add('sick-mild');      band = 'mild'; }
+
+      if ((band === 'bad' || band === 'critical') && band !== lastHealthBand) {
+        const pool = sickBubbles[band];
+        showBubbleTemp(pool[Math.floor(Math.random() * pool.length)], 3000);
+      }
+      lastHealthBand = band;
+    }
+
     // pet swap from settings
     window.pawback.onSetPet(pet => { img.src = pet; });
+
+    // apply saved health immediately on load (don't wait for first adjustHealth call)
+    window.pawback.getSettings().then(s => {
+      if (typeof s?.petHealth === 'number') {
+        applyHealthLook(s.petHealth);
+      }
+    });
 
     // encouragement bubbles
     window.pawback.onShowBubble(msg => {
