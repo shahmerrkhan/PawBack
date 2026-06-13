@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+   body {
+      margin: 0;
+      padding: 0;
+      background: rgba(20, 20, 20, 0.95);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: sans-serif;
+      color: white;
+      text-align: center;
+    }
+    #content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+    }
+    .animal {
+      width: 200px;
+      height: 200px;
+      object-fit: contain;
+      display: block;
+    }
+    .message {
+      font-size: 32px;
+      margin-top: 20px;
+      max-width: 600px;
+    }
+    .btn-row {
+      margin-top: 30px;
+      display: flex;
+      gap: 20px;
+    }
+    .btn {
+      padding: 15px 40px;
+      font-size: 20px;
+      border-radius: 30px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-yes {
+      background: #ffaa33;
+      color: #222;
+    }
+    .btn-yes:hover {
+      background: #ffc266;
+    }
+    .btn-no {
+      background: #444;
+      color: #fff;
+    }
+    .btn-no:hover {
+      background: #666;
+    }
+    .lockin {
+      font-size: 80px;
+      font-weight: bold;
+      color: #ff5555;
+    }
+    .confetti-piece {
+      position: fixed;
+      top: -20px;
+      width: 10px;
+      height: 16px;
+      opacity: 0.9;
+      animation: confettiFall linear forwards;
+    }
+    @keyframes confettiFall {
+      to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div id="content"></div>
+
+  <script>
+    const content = document.getElementById('content');
+
+        window.pawback.onSetScreen((type, pet, msg, extra) => {
+        const img = `<img src="${pet}" class="animal" />`;
+
+      if (type === 'pounce') {
+        content.innerHTML = `
+          ${img}
+          <div class="message">${msg}</div>
+        `;
+        // auto-advance after 1.5 seconds
+        setTimeout(() => {
+          window.pawback.pounceDone();
+        }, 1500);
+
+        } else if (type === 'breakOffer') {
+        const appLabel = (extra && extra.appName) ? `<div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Caught on: <b style="color:var(--text)">${extra.appName}</b></div>` : '';
+        content.innerHTML = `
+          ${img}
+          ${appLabel}
+          <div class="message">You seem restless... need a break?</div>
+          <div class="btn-row">
+            <button class="btn btn-yes" onclick="window.pawback.breakOfferYes()">Yes please 😴</button>
+            <button class="btn btn-no" onclick="window.pawback.breakOfferNo()">No, I'm good</button>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;">
+            <button class="btn btn-no" style="font-size:14px;padding:10px 20px;" onclick="window.pawback.snoozeApp('${extra?.appName || ''}', 5)">⏱ Snooze 5 min</button>
+            <button class="btn btn-no" style="font-size:14px;padding:10px 20px;" onclick="window.pawback.snoozeApp('${extra?.appName || ''}', 15)">⏱ Snooze 15 min</button>
+          </div>
+        `;
+        content.innerHTML = `
+          ${img}
+          <div class="message">Wanna take a break?</div>
+          <div class="btn-row">
+            <button class="btn btn-yes" onclick="window.pawback.breakOfferYes()">Yes</button>
+            <button class="btn btn-no" onclick="window.pawback.breakOfferNo()">No</button>
+          </div>
+        `;
+
+      } else if (type === 'breakConfirm') {
+        content.innerHTML = `
+          ${img}
+          <div class="message">You sure? Take a break anyway?</div>
+          <div class="btn-row">
+            <button class="btn btn-yes" onclick="window.pawback.breakConfirmYes()">Yes</button>
+            <button class="btn btn-no" onclick="window.pawback.breakConfirmNo()">No, lock in</button>
+          </div>
+        `;
+
+      } else if (type === 'lockin') {
+        content.innerHTML = `
+          <img src="lockin.svg" class="animal" />
+          <div class="lockin">LOCK IN!! 🔒</div>
+        `;
+        spawnConfetti();
+      }
+    });
+
+    function spawnConfetti() {
+      const colors = ['#ffaa33', '#ff5f5f', '#5cdb95', '#4fc3f7', '#fff'];
+      for (let i = 0; i < 60; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.style.left = Math.random() * 100 + 'vw';
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.animationDuration = (2 + Math.random() * 1.5) + 's';
+        piece.style.animationDelay = (Math.random() * 0.3) + 's';
+        document.body.appendChild(piece);
+        setTimeout(() => piece.remove(), 4000);
+      }
+    }
+  </script>
+</body>
+</html>

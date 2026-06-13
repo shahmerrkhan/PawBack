@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #1a1a1a;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+      padding: 30px;
+    }
+    h1 { font-size: 28px; margin-bottom: 4px; }
+    .sub { color: #999; font-size: 14px; margin-bottom: 30px; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 30px;
+    }
+    .card {
+      background: #2a2a2a;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .card .label { font-size: 13px; color: #999; margin-bottom: 8px; }
+    .card .value { font-size: 38px; font-weight: bold; color: #ffaa33; }
+    .card.focus .value { color: #4fc3f7; }
+    .card.streak .value { color: #ff6b35; }
+    .grade {
+      font-size: 72px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    .grade-label { font-size: 18px; color: #ccc; margin-bottom: 30px; }
+    .close-btn {
+      padding: 14px 50px;
+      background: #ffaa33;
+      border: none;
+      border-radius: 30px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #222;
+    }
+    .close-btn:hover { background: #ffc266; }
+  </style>
+</head>
+<body>
+  <h1>Session Wrapped 🐾</h1>
+  <div class="sub" id="duration">—</div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="label">🐾 Times caught</div>
+      <div class="value" id="rcPounce">—</div>
+    </div>
+    <div class="card">
+      <div class="label">☕ Breaks taken</div>
+      <div class="value" id="rcBreaks">—</div>
+    </div>
+    <div class="card focus">
+      <div class="label">🎯 Focus time</div>
+      <div class="value" id="rcFocus">—</div>
+    </div>
+    <div class="card streak">
+      <div class="label">🔥 Streak</div>
+      <div class="value" id="rcStreak">—</div>
+    </div>
+  </div>
+
+  <div class="grade" id="grade">—</div>
+  <div class="grade-label" id="gradeLabel">—</div>
+
+  <button class="close-btn" onclick="window.pawback.closeReportCard()">Close</button>
+
+  <script>
+    window.pawback.getSessionStats().then(stats => {
+      window.pawback.getSettings().then(settings => {
+        document.getElementById('rcPounce').textContent = stats.pounceCount;
+        document.getElementById('rcBreaks').textContent = stats.breaksTaken;
+        document.getElementById('rcFocus').textContent = stats.focusMinutes + ' min';
+        document.getElementById('rcStreak').textContent = (settings.streak || 0) + ' day' + (settings.streak === 1 ? '' : 's');
+        document.getElementById('duration').textContent = `${stats.sessionMinutes} minute session`;
+
+        // Grade based on focus ratio
+        const ratio = stats.sessionMinutes > 0 ? stats.focusMinutes / stats.sessionMinutes : 0;
+        let grade, label;
+        if (ratio >= 0.85)      { grade = 'S'; label = 'Absolutely locked in. Respect.'; }
+        else if (ratio >= 0.70) { grade = 'A'; label = 'Solid session. Cat is proud.'; }
+        else if (ratio >= 0.55) { grade = 'B'; label = 'Decent. Could be worse.'; }
+        else if (ratio >= 0.40) { grade = 'C'; label = 'The cat is disappointed.'; }
+        else if (ratio >= 0.25) { grade = 'D'; label = 'Bro. Come on.'; }
+        else                    { grade = 'F'; label = 'The cat has given up on you.'; }
+
+        document.getElementById('grade').textContent = grade;
+        document.getElementById('grade-label') // typo guard
+        document.getElementById('gradeLabel').textContent = label;
+      });
+    });
+  </script>
+</body>
+</html>

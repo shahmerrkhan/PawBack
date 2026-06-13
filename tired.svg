@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140" width="120" height="140">
+  <!-- body slumped -->
+  <ellipse cx="60" cy="105" rx="38" ry="28" fill="#f5a623"/>
+  <!-- head -->
+  <circle cx="60" cy="65" r="34" fill="#f5a623"/>
+  <!-- droopy ears -->
+  <polygon points="32,44 20,24 46,36" fill="#f5a623"/>
+  <polygon points="88,44 100,24 74,36" fill="#f5a623"/>
+  <polygon points="34,43 24,28 44,36" fill="#f9c87a"/>
+  <polygon points="86,43 96,28 76,36" fill="#f9c87a"/>
+  <!-- half-closed sleepy eyes -->
+  <ellipse cx="46" cy="62" rx="8" ry="5" fill="white"/>
+  <ellipse cx="74" cy="62" rx="8" ry="5" fill="white"/>
+  <ellipse cx="46" cy="64" rx="8" ry="3" fill="#f5a623"/>
+  <ellipse cx="74" cy="64" rx="8" ry="3" fill="#f5a623"/>
+  <ellipse cx="46" cy="63" rx="5" ry="3" fill="#333"/>
+  <ellipse cx="74" cy="63" rx="5" ry="3" fill="#333"/>
+  <!-- nose -->
+  <ellipse cx="60" cy="72" rx="4" ry="3" fill="#e8739a"/>
+  <!-- small tired mouth -->
+  <path d="M56 76 Q60 79 64 76" stroke="#c0456a" stroke-width="1.5" fill="none"/>
+  <!-- whiskers drooping -->
+  <line x1="20" y1="70" x2="50" y2="73" stroke="#c8a060" stroke-width="1.2"/>
+  <line x1="22" y1="76" x2="50" y2="76" stroke="#c8a060" stroke-width="1.2"/>
+  <line x1="100" y1="70" x2="70" y2="73" stroke="#c8a060" stroke-width="1.2"/>
+  <line x1="98" y1="76" x2="70" y2="76" stroke="#c8a060" stroke-width="1.2"/>
+  <!-- z z z -->
+  <text x="88" y="36" font-size="14" fill="#aaa" font-family="sans-serif" font-weight="bold">z</text>
+  <text x="98" y="24" font-size="18" fill="#bbb" font-family="sans-serif" font-weight="bold">z</text>
+  <text x="110" y="12" font-size="22" fill="#ccc" font-family="sans-serif" font-weight="bold">Z</text>
+</svg>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      overflow: hidden;
+      width: 140px;
+      height: 140px;
+      position: relative;
+    }
+    img {
+      width: 140px;
+      height: 140px;
+      object-fit: contain;
+      display: block;
+      transition: filter 0.4s ease;
+      animation: idleBob 2.6s ease-in-out infinite;
+      transform-origin: bottom center;
+    }
+    @keyframes idleBob {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-6px) scale(1.02); }
+    }
+    .suspicious {
+      filter: hue-rotate(30deg) saturate(1.4);
+    }
+    .done {
+      filter: hue-rotate(200deg) saturate(1.6) brightness(0.85);
+    }
+    .bubble {
+      position: absolute;
+      bottom: 130px;
+      right: 0;
+      background: #fff;
+      color: #333;
+      font-family: sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 12px;
+      border-radius: 14px;
+      max-width: 160px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      opacity: 0;
+      transform: translateY(10px) scale(0.9);
+      transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .bubble.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  </style>
+</head>
+<body>
+  <img id="pet" src="cat.svg" />
+  <div class="bubble" id="bubble"></div>
+  <script>
+    window.pawback.getSettings().then(s => {
+      if (s && s.pet) document.getElementById('pet').src = s.pet;
+    });
+
+    window.pawback.onSetMood((mood) => {
+      const img = document.getElementById('pet');
+      img.className = '';
+      if (mood === 'suspicious') img.classList.add('suspicious');
+      if (mood === 'done') img.classList.add('done');
+    });
+
+    window.pawback.onSetPet((pet) => {
+      document.getElementById('pet').src = pet;
+    });
+
+    window.pawback.onShowBubble((msg) => {
+      const bubble = document.getElementById('bubble');
+      bubble.textContent = msg;
+      bubble.classList.add('show');
+      setTimeout(() => bubble.classList.remove('show'), 4500);
+    });
+  </script>
+</body>
+</html>

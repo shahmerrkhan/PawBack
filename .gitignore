@@ -1,0 +1,5 @@
+.env
+node_modules/
+settings.json
+sounds/
+tray.png

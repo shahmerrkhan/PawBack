@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 190" width="160" height="190">
+  <defs>
+    <radialGradient id="bunnyBody" cx="50%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f3eaf6"/>
+    </radialGradient>
+    <linearGradient id="bunnyEarInner" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffd6ea"/>
+      <stop offset="100%" stop-color="#ffb8d9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- shadow -->
+  <ellipse cx="80" cy="178" rx="46" ry="8" fill="#000" opacity="0.15"/>
+
+  <!-- ears -->
+  <ellipse cx="56" cy="32" rx="15" ry="42" fill="url(#bunnyBody)" transform="rotate(-8,56,32)"/>
+  <ellipse cx="104" cy="32" rx="15" ry="42" fill="url(#bunnyBody)" transform="rotate(8,104,32)"/>
+  <ellipse cx="56" cy="34" rx="8" ry="32" fill="url(#bunnyEarInner)" transform="rotate(-8,56,34)"/>
+  <ellipse cx="104" cy="34" rx="8" ry="32" fill="url(#bunnyEarInner)" transform="rotate(8,104,34)"/>
+
+  <!-- body -->
+  <ellipse cx="80" cy="148" rx="50" ry="38" fill="url(#bunnyBody)"/>
+
+  <!-- head -->
+  <circle cx="80" cy="98" r="50" fill="url(#bunnyBody)"/>
+
+  <!-- cheeks -->
+  <ellipse cx="46" cy="112" rx="14" ry="10" fill="#ffd6ea" opacity="0.7"/>
+  <ellipse cx="114" cy="112" rx="14" ry="10" fill="#ffd6ea" opacity="0.7"/>
+
+  <!-- eyes -->
+  <ellipse cx="58" cy="96" rx="16" ry="18" fill="#fff"/>
+  <ellipse cx="102" cy="96" rx="16" ry="18" fill="#fff"/>
+  <ellipse cx="61" cy="101" rx="9.5" ry="11.5" fill="#9c7fc6"/>
+  <ellipse cx="105" cy="101" rx="9.5" ry="11.5" fill="#9c7fc6"/>
+  <circle cx="65" cy="94" r="3.5" fill="#fff"/>
+  <circle cx="109" cy="94" r="3.5" fill="#fff"/>
+  <circle cx="57" cy="105" r="2" fill="#fff" opacity="0.8"/>
+  <circle cx="101" cy="105" r="2" fill="#fff" opacity="0.8"/>
+
+  <!-- nose -->
+  <ellipse cx="80" cy="116" rx="6" ry="4.5" fill="#ff9fc0"/>
+
+  <!-- mouth -->
+  <path d="M80 120 Q80 126 70 128" stroke="#d98aa8" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M80 120 Q80 126 90 128" stroke="#d98aa8" stroke-width="2" fill="none" stroke-linecap="round"/>
+
+  <!-- whiskers -->
+  <line x1="4" y1="110" x2="50" y2="116" stroke="#e6d8ee" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="4" y1="122" x2="50" y2="122" stroke="#e6d8ee" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="156" y1="110" x2="110" y2="116" stroke="#e6d8ee" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="156" y1="122" x2="110" y2="122" stroke="#e6d8ee" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- paws -->
+  <ellipse cx="58" cy="178" rx="18" ry="12" fill="#fdf4f9"/>
+  <ellipse cx="102" cy="178" rx="18" ry="12" fill="#fdf4f9"/>
+
+  <!-- belly highlight -->
+  <ellipse cx="80" cy="154" rx="28" ry="22" fill="#fff" opacity="0.5"/>
+</svg>

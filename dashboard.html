@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #141414;
+      --surface: #1c1c1c;
+      --surface2: #242424;
+      --border: #2e2e2e;
+      --amber: #ff9f2f;
+      --amber-dim: #cc7a1a;
+      --amber-glow: rgba(255,159,47,0.15);
+      --text: #f0ece4;
+      --muted: #888;
+      --coral: #ff5f5f;
+      --blue: #4fc3f7;
+      --green: #5cdb95;
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 200px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 0 20px;
+      flex-shrink: 0;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 20px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo-icon {
+      width: 36px; height: 36px;
+      background: var(--amber-glow);
+      border: 1px solid var(--amber);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .logo-text { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+
+    .nav { padding: 16px 12px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+
+    .tab {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
+      transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
+      user-select: none;
+      border: 1px solid transparent;
+    }
+    .tab:hover { color: var(--text); background: var(--surface2); }
+    .tab.active {
+      color: var(--amber);
+      background: var(--amber-glow);
+      border-color: rgba(255,159,47,0.25);
+    }
+    .tab-icon { font-size: 16px; width: 20px; text-align: center; }
+
+    .sidebar-footer {
+      padding: 16px 20px 0;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* ── CONTENT ── */
+    .content {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .page {
+      position: absolute;
+      inset: 0;
+      padding: 36px;
+      overflow-y: auto;
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.34,1.2,0.64,1);
+    }
+    .page.active {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: all;
+    }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      letter-spacing: -0.3px;
+    }
+    .page-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 14px;
+      transition: border-color 0.2s;
+    }
+    .card:hover { border-color: #3a3a3a; }
+    .card-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 10px;
+    }
+    .card-value {
+      font-size: 40px;
+      font-weight: 800;
+      color: var(--amber);
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+    .card-value.blue { color: var(--blue); }
+    .card-value.coral { color: var(--coral); }
+    .card-value.green { color: var(--green); }
+
+    /* ── STATS GRID ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .stats-grid .card { margin-bottom: 0; }
+
+    /* ── GRAPH ── */
+    .graph-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 14px;
+    }
+    .graph-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 16px;
+    }
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 80px;
+    }
+    .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .bar-wrap { width: 100%; display: flex; gap: 3px; align-items: flex-end; height: 70px; }
+    .bar {
+      flex: 1;
+      border-radius: 4px 4px 0 0;
+      transition: height 0.6s cubic-bezier(0.34,1.2,0.64,1);
+      min-height: 3px;
+    }
+    .bar.focus { background: var(--blue); }
+    .bar.distracted { background: var(--coral); opacity: 0.7; }
+    .bar-label { font-size: 10px; color: var(--muted); }
+
+    .graph-legend {
+      display: flex; gap: 16px; margin-top: 10px;
+    }
+    .legend-dot {
+      width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px;
+    }
+    .legend-item { font-size: 12px; color: var(--muted); display: flex; align-items: center; }
+
+    /* ── WELCOME ── */
+    .welcome-hero {
+      text-align: center;
+      padding: 20px 0 32px;
+    }
+    .welcome-hero .hero-emoji { font-size: 64px; display: block; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .welcome-hero h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
+    .welcome-hero p { font-size: 14px; color: var(--muted); max-width: 340px; margin: 0 auto 28px; line-height: 1.6; }
+
+    .steps { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+    .step-row {
+      display: flex; align-items: flex-start; gap: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .step-row:hover { border-color: #3a3a3a; transform: translateX(3px); }
+    .step-num {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--amber-glow);
+      border: 1px solid var(--amber);
+      color: var(--amber);
+      font-size: 13px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-text b { display: block; font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+    .step-text span { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+    .start-btn {
+      display: block; width: 100%;
+      padding: 16px;
+      background: var(--amber);
+      color: #141414;
+      border: none;
+      border-radius: var(--radius);
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
+      letter-spacing: -0.2px;
+    }
+    .start-btn:hover { background: #ffb84d; transform: scale(1.02); }
+    .start-btn:active { transform: scale(0.98); }
+
+    /* ── SETTINGS ── */
+    .field { margin-bottom: 20px; }
+    .field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 8px;
+    }
+
+    .multi-select-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px;
+      min-height: 80px;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+    .multi-select-box:focus-within { border-color: var(--amber); }
+
+    .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .tag {
+      display: flex; align-items: center; gap: 5px;
+      background: var(--amber-glow);
+      border: 1px solid rgba(255,159,47,0.3);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--amber);
+      transition: all 0.15s;
+    }
+    .tag .remove {
+      cursor: pointer; font-size: 14px; color: var(--amber-dim);
+      line-height: 1; transition: color 0.1s;
+    }
+    .tag .remove:hover { color: var(--coral); }
+
+    .proc-search {
+      width: 100%; background: transparent; border: none; outline: none;
+      color: var(--text); font-family: 'Outfit', sans-serif; font-size: 13px;
+      padding: 4px 2px;
+    }
+    .proc-search::placeholder { color: var(--muted); }
+
+    .proc-dropdown {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      max-height: 180px;
+      overflow-y: auto;
+      margin-top: 6px;
+      display: none;
+    }
+    .proc-dropdown.open { display: block; }
+    .proc-item {
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.12s;
+      border-radius: 6px;
+      margin: 2px;
+    }
+    .proc-item:hover { background: var(--amber-glow); color: var(--amber); }
+
+    /* pet grid */
+    .pet-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .pet-option {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .pet-option:hover { border-color: #3a3a3a; transform: scale(1.04); }
+    .pet-option.selected {
+      border-color: var(--amber);
+      background: var(--amber-glow);
+    }
+    .pet-option img { width: 52px; height: 52px; object-fit: contain; display: block; margin: 0 auto 6px; }
+    .pet-option span { font-size: 12px; font-weight: 500; color: var(--muted); }
+    .pet-option.selected span { color: var(--amber); }
+
+    .tone-option.selected {
+      border-color: var(--amber) !important;
+      background: var(--amber-glow) !important;
+      color: var(--amber);
+    }
+    
+    .num-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    input[type=number] {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type=number]:focus { border-color: var(--amber); }
+
+    .api-input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .api-input:focus { border-color: var(--amber); }
+
+    .save-btn {
+      width: 100%; padding: 14px;
+      background: var(--amber); color: #141414;
+      border: none; border-radius: var(--radius);
+      font-family: 'Outfit', sans-serif;
+      font-size: 15px; font-weight: 700;
+      cursor: pointer; margin-top: 24px;
+      transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .save-btn:hover { background: #ffb84d; transform: scale(1.01); }
+    .save-btn:active { transform: scale(0.98); }
+
+    .saved-toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px);
+      background: var(--green); color: #141414;
+      padding: 10px 24px; border-radius: 30px;
+      font-size: 14px; font-weight: 600;
+      opacity: 0; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      pointer-events: none; z-index: 999;
+    }
+    .saved-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── SHORTCUTS ── */
+    .shortcut-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 10px;
+      transition: border-color 0.2s;
+    }
+    .shortcut-row:hover { border-color: #3a3a3a; }
+    .shortcut-desc { font-size: 14px; }
+    .shortcut-desc small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .kbd {
+      display: flex; gap: 4px;
+    }
+    .key {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-bottom: 3px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-family: monospace;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: #444; }
+  </style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">🐾</div>
+    <div class="logo-text">PawBack</div>
+  </div>
+  <nav class="nav">
+    <div class="tab active" data-page="welcome"><span class="tab-icon">🏠</span> Home</div>
+    <div class="tab" data-page="stats"><span class="tab-icon">📊</span> Stats</div>
+    <div class="tab" data-page="settings"><span class="tab-icon">⚙️</span> Settings</div>
+    <div class="tab" data-page="shortcuts"><span class="tab-icon">⌨️</span> Shortcuts</div>
+    <div class="tab" data-page="history"><span class="tab-icon">📅</span> History</div>
+    </nav>
+  <div class="sidebar-footer">
+    Runs in background.<br>Close anytime.
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- WELCOME -->
+  <div class="page active" id="welcome">
+    <div class="welcome-hero">
+      <span class="hero-emoji">🐾</span>
+      <h1>Ready to lock in?</h1>
+      <p>Your cat will keep an eye on you. Wander off and face the consequences.</p>
+    </div>
+    <div class="steps">
+      <div class="step-row">
+        <div class="step-num">1</div>
+        <div class="step-text">
+          <b>Pick your allowed apps</b>
+          <span>Add whatever you'll actually be working in — your editor, terminal, docs.</span>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-num">2</div>
+        <div class="step-text">
+          <b>Just work</b>
+          <span>Your pet peeks from the corner. Quiet and watching.</span>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-num">3</div>
+        <div class="step-text">
+          <b>Get caught</b>
+          <span>Switch to something else and your pet takes over the screen.</span>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-num">4</div>
+        <div class="step-text">
+          <b>Need a real break?</b>
+          <span>Say yes when your pet asks. It'll give you time then drag you back.</span>
+        </div>
+      </div>
+    </div>
+    <button class="start-btn" onclick="goToSettings()">Set up & start →</button>
+  </div>
+
+  <!-- STATS -->
+  <div class="page" id="stats">
+    <h2>Today's Session</h2>
+    <p class="page-sub">Updated live every 30 seconds.</p>
+
+    <div class="stats-grid">
+      <div class="card">
+        <div class="card-label">🐾 Times caught</div>
+        <div class="card-value" id="statPounce">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">☕ Breaks taken</div>
+        <div class="card-value" id="statBreaks">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">⏱ Session</div>
+        <div class="card-value blue" id="statMinutes">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">🎯 Focused</div>
+        <div class="card-value green" id="statFocus">—</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-label">🔥 Focus streak</div>
+      <div class="card-value coral" id="statStreak">—</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px;">Days in a row you've opened PawBack</div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-label">🎯 Daily goal</div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:8px;">
+        <span id="goalProgressText">— / — min</span>
+      </div>
+      <div style="background:var(--surface2);border-radius:99px;height:12px;overflow:hidden;">
+        <div id="goalBar" style="height:100%;background:var(--green);width:0%;border-radius:99px;transition:width 0.6s cubic-bezier(0.34,1.2,0.64,1);"></div>
+      </div>
+    </div>
+
+    <div class="graph-card">
+      <div class="graph-title">Focus vs distracted — this session</div>
+      <div class="bar-chart" id="barChart"></div>
+      <div class="graph-legend">
+        <div class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span>Focused</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--coral)"></span>Distracted</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="settings">
+    <h2>Settings</h2>
+    <p class="page-sub">Changes save immediately.</p>
+
+    <div class="field">
+      <label>Allowed apps</label>
+      <div class="multi-select-box">
+        <div class="tag-list" id="tagList"></div>
+        <input class="proc-search" id="procSearch" placeholder="Search running apps to add…" autocomplete="off"/>
+      </div>
+      <div class="proc-dropdown" id="procDropdown"></div>
+    </div>
+
+    <div class="field">
+      <label>Your pet</label>
+      <div class="pet-grid" id="petGrid"></div>
+    </div>
+
+    <div class="field">
+      <label>Timers</label>
+      <div class="num-row">
+        <div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Break duration (min)</div>
+          <input type="number" id="breakDurationMin" min="1"/>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Pause duration (min)</div>
+          <input type="number" id="pauseDurationMin" min="1"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Daily focus goal (minutes)</label>
+      <input type="number" id="dailyGoalMin" min="5"/>
+    </div>
+
+    <div class="field">
+      <label>Pounce tone</label>
+      <div style="display:flex;gap:10px;">
+        <div class="tone-option" data-tone="gentle" style="flex:1;padding:12px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);text-align:center;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.15s;">🌸 Gentle</div>
+        <div class="tone-option" data-tone="sassy"  style="flex:1;padding:12px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);text-align:center;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.15s;">😼 Sassy</div>
+        <div class="tone-option" data-tone="brutal" style="flex:1;padding:12px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);text-align:center;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.15s;">💀 Brutal</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Sound</label>
+      <button id="muteBtn" onclick="toggleMute()" style="width:100%;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s;text-align:left;">🔇 Mute sounds</button>
+    </div>
+
+    <div class="field">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;font-size:13px;color:var(--muted);">
+        🤖 AI pounce messages powered by Groq. Tone changes apply next pounce.
+      </div>
+    </div>
+
+    <button class="save-btn" onclick="save()">Save settings</button>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="page" id="history">
+    <h2>Weekly History</h2>
+    <p class="page-sub">Last 7 days of focus data.</p>
+
+    <div class="graph-card">
+      <div class="graph-title">Focus minutes per day</div>
+      <div class="bar-chart" id="weeklyChart" style="height:100px;align-items:flex-end;"></div>
+      <div class="graph-legend" style="margin-top:12px;">
+        <div class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span>Focused</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">📅 This week</div>
+      <div id="weekSummary" style="font-size:14px;color:var(--muted);margin-top:4px;">—</div>
+    </div>
+  </div>
+
+  <!-- SHORTCUTS -->
+  <div class="page" id="shortcuts">
+    <h2>Shortcuts</h2>
+    <p class="page-sub">Keyboard shortcuts that work anywhere.</p>
+
+    <div class="shortcut-row">
+      <div class="shortcut-desc">
+        Pause PawBack
+        <small>Uses the pause duration set in Settings</small>
+      </div>
+      <div class="kbd"><span class="key">Ctrl</span><span class="key">Shift</span><span class="key">P</span></div>
+    </div>
+    <div class="shortcut-row">
+      <div class="shortcut-desc">
+        Resume immediately
+        <small>If you paused and want to get back early</small>
+      </div>
+      <div class="kbd"><span class="key">Ctrl</span><span class="key">Shift</span><span class="key">R</span></div>
+    </div>
+    <div class="shortcut-row">
+      <div class="shortcut-desc">
+        Open this dashboard
+        <small>Works even when the window is closed</small>
+      </div>
+      <div class="kbd"><span class="key">Ctrl</span><span class="key">Shift</span><span class="key">S</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="saved-toast" id="savedToast">Settings saved ✓</div>
+
+<script>
+  const PETS = [
+    { file: 'cat.svg',   name: 'Cat' },
+    { file: 'bunny.svg', name: 'Bunny' },
+    { file: 'bear.svg',  name: 'Bear' },
+    { file: 'fox.svg',   name: 'Fox' },
+    { file: 'dog.svg',   name: 'Dog' },
+  ];
+
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      setTimeout(() => document.getElementById(tab.dataset.page).classList.add('active'), 30);
+      if (tab.dataset.page === 'stats') refreshStats();
+      if (tab.dataset.page === 'history') renderWeeklyChart();
+    });
+  });
+
+  function goToSettings() {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelector('[data-page="settings"]').classList.add('active');
+    setTimeout(() => document.getElementById('settings').classList.add('active'), 30);
+  }
+
+  // ── Pet grid ──
+  let selectedPet = 'cat.svg';
+  function buildPetGrid() {
+    const grid = document.getElementById('petGrid');
+    grid.innerHTML = '';
+    PETS.forEach(p => {
+      const el = document.createElement('div');
+      el.className = 'pet-option' + (p.file === selectedPet ? ' selected' : '');
+      el.innerHTML = `<img src="${p.file}" /><span>${p.name}</span>`;
+      el.onclick = () => {
+        selectedPet = p.file;
+        document.querySelectorAll('.pet-option').forEach(o => o.classList.remove('selected'));
+        el.classList.add('selected');
+      };
+      grid.appendChild(el);
+    });
+  }
+
+  // ── Tone selector ──
+  let selectedTone = 'sassy';
+  function buildToneSelector() {
+    document.querySelectorAll('.tone-option').forEach(el => {
+      el.classList.toggle('selected', el.dataset.tone === selectedTone);
+      el.onclick = () => {
+        selectedTone = el.dataset.tone;
+        document.querySelectorAll('.tone-option').forEach(o => o.classList.remove('selected'));
+        el.classList.add('selected');
+      };
+    });
+  }
+
+  // ── Mute toggle ──
+  let soundMuted = false;
+  function syncMuteUI() {
+    const btn = document.getElementById('muteBtn');
+    if (btn) btn.textContent = soundMuted ? '🔈 Unmute sounds' : '🔇 Mute sounds';
+  }
+  window.pawback.onMuteChanged(v => { soundMuted = v; syncMuteUI(); });
+
+  // ── Allowed apps ──
+  let allowedApps = [], allProcs = [];
+  async function loadProcs() { allProcs = await window.pawback.getRunningProcesses(); }
+
+  function renderTags() {
+    const list = document.getElementById('tagList');
+    list.innerHTML = '';
+    allowedApps.forEach(app => {
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.innerHTML = `${app} <span class="remove" onclick="removeApp('${app}')">×</span>`;
+      list.appendChild(tag);
+    });
+  }
+  function removeApp(name) { allowedApps = allowedApps.filter(a => a !== name); renderTags(); }
+  function addApp(name) {
+    if (!allowedApps.includes(name)) { allowedApps.push(name); renderTags(); }
+    document.getElementById('procSearch').value = '';
+    document.getElementById('procDropdown').classList.remove('open');
+  }
+
+  document.getElementById('procSearch').addEventListener('input', function() {
+    const q = this.value.toLowerCase().trim();
+    const dd = document.getElementById('procDropdown');
+    if (!q) { dd.classList.remove('open'); return; }
+    const matches = allProcs.filter(p => p.toLowerCase().includes(q) && !allowedApps.includes(p)).slice(0, 12);
+    if (!matches.length) { dd.classList.remove('open'); return; }
+    dd.innerHTML = matches.map(p => `<div class="proc-item" onclick="addApp('${p}')">${p}</div>`).join('');
+    dd.classList.add('open');
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.multi-select-box') && !e.target.closest('.proc-dropdown'))
+      document.getElementById('procDropdown').classList.remove('open');
+  });
+
+  // ── Stats ──
+  let snapshots = [], lastFocus = 0, lastSession = 0;
+
+  async function refreshStats() {
+    const stats = await window.pawback.getSessionStats();
+    const s = await window.pawback.getSettings();
+
+    document.getElementById('statPounce').textContent  = stats.pounceCount;
+    document.getElementById('statBreaks').textContent  = stats.breaksTaken;
+    document.getElementById('statMinutes').textContent = stats.sessionMinutes + ' min';
+    document.getElementById('statFocus').textContent   = stats.focusMinutes + ' min';
+    document.getElementById('statStreak').textContent  = (s.streak || 0) + ' day' + (s.streak === 1 ? '' : 's');
+
+    const goal = s.dailyGoalMin || 60;
+    const pct = Math.min(100, Math.round((stats.focusMinutes / goal) * 100));
+    document.getElementById('goalProgressText').textContent = `${stats.focusMinutes} / ${goal} min`;
+    document.getElementById('goalBar').style.width = pct + '%';
+
+    const focusDelta = stats.focusMinutes - lastFocus;
+    const sessionDelta = stats.sessionMinutes - lastSession;
+    const distractedDelta = Math.max(0, sessionDelta - focusDelta);
+    if (sessionDelta > 0) {
+      snapshots.push({ focus: focusDelta, distracted: distractedDelta });
+      if (snapshots.length > 10) snapshots.shift();
+    }
+    lastFocus = stats.focusMinutes;
+    lastSession = stats.sessionMinutes;
+    renderGraph();
+  }
+
+  function renderGraph() {
+    const chart = document.getElementById('barChart');
+    if (!snapshots.length) {
+      chart.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:20px 0;">No data yet — check back after a few minutes.</div>';
+      return;
+    }
+    const max = Math.max(...snapshots.map(s => s.focus + s.distracted), 1);
+    chart.innerHTML = snapshots.map((s, i) => {
+      const fh = Math.round((s.focus / max) * 64);
+      const dh = Math.round((s.distracted / max) * 64);
+      return `<div class="bar-group">
+        <div class="bar-wrap">
+          <div class="bar focus" style="height:${fh}px"></div>
+          <div class="bar distracted" style="height:${dh}px"></div>
+        </div>
+        <div class="bar-label">${i + 1}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Weekly history chart ──
+  async function renderWeeklyChart() {
+    const s = await window.pawback.getSettings();
+    const history = s.weeklyHistory || {};
+
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000);
+      const key = d.toISOString().slice(0, 10);
+      const label = i === 0 ? 'Today' : d.toLocaleDateString('en', { weekday: 'short' });
+      days.push({ key, label, data: history[key] || null });
+    }
+
+    const maxFocus = Math.max(...days.map(d => d.data?.focusMinutes || 0), 1);
+    const chart = document.getElementById('weeklyChart');
+    chart.innerHTML = days.map(d => {
+      const fm = d.data?.focusMinutes || 0;
+      const pc = d.data?.pounceCount || 0;
+      const barH = Math.round((fm / maxFocus) * 80);
+      const hasData = !!d.data;
+      return `
+        <div class="bar-group" title="${fm} min focused, caught ${pc}x">
+          <div class="bar-wrap" style="height:80px;">
+            <div class="bar focus" style="height:${barH}px;opacity:${hasData ? 1 : 0.2};"></div>
+          </div>
+          <div class="bar-label" style="font-size:9px;">${d.label}</div>
+          <div class="bar-label" style="color:var(--amber);font-size:9px;">${fm > 0 ? fm + 'm' : ''}</div>
+        </div>`;
+    }).join('');
+
+    // summary
+    const totalFocus = days.reduce((a, d) => a + (d.data?.focusMinutes || 0), 0);
+    const totalPounces = days.reduce((a, d) => a + (d.data?.pounceCount || 0), 0);
+    document.getElementById('weekSummary').textContent =
+      `${totalFocus} min focused · ${totalPounces} times caught this week`;
+  }
+
+  // ── Save ──
+  function save() {
+    const s = {
+      allowedApps,
+      pet: selectedPet,
+      breakDurationMin: Number(document.getElementById('breakDurationMin').value),
+      pauseDurationMin: Number(document.getElementById('pauseDurationMin').value),
+      dailyGoalMin: Number(document.getElementById('dailyGoalMin').value),
+      pounceTone: selectedTone,
+      soundMuted,
+      streak: window._streak || 0,
+      lastActiveDate: window._lastActiveDate || '',
+    };
+    window.pawback.saveSettings(s);
+    const toast = document.getElementById('savedToast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  function toggleMute() {
+    soundMuted = !soundMuted;
+    syncMuteUI();
+    // save immediately
+    save();
+  }
+
+  // ── Load ──
+  async function load() {
+    const s = await window.pawback.getSettings();
+    allowedApps   = [...(s.allowedApps || [])];
+    selectedPet   = s.pet || 'cat.svg';
+    selectedTone  = s.pounceTone || 'sassy';
+    soundMuted    = s.soundMuted || false;
+    window._streak = s.streak || 0;
+    window._lastActiveDate = s.lastActiveDate || '';
+
+    document.getElementById('breakDurationMin').value = s.breakDurationMin || 10;
+    document.getElementById('pauseDurationMin').value = s.pauseDurationMin || 60;
+    document.getElementById('dailyGoalMin').value     = s.dailyGoalMin || 60;
+
+    renderTags();
+    buildPetGrid();
+    buildToneSelector();
+    syncMuteUI();
+    await loadProcs();
+    await refreshStats();
+    renderWeeklyChart();
+  }
+
+  setInterval(refreshStats, 30000);
+  load();
+</script>
+</body>
+</html>
