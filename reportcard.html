@@ -96,7 +96,52 @@
     }
     .close-btn:hover { background: #ffb84d; transform: scale(1.04); }
     .close-btn:active { transform: scale(0.97); }
-  </style>
+
+    .debt-wrap {
+      width: 100%; max-width: 380px;
+      background: var(--surface);
+      border: 1px solid #ff5f5f55;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .debt-number {
+      font-size: 48px; font-weight: 800;
+      color: var(--coral); letter-spacing: -2px; line-height: 1;
+    }
+    .debt-label { font-size: 13px; color: var(--muted); margin: 6px 0 16px; }
+    .debt-btns { display: flex; gap: 10px; justify-content: center; }
+    .btn-payback {
+      padding: 12px 28px;
+      background: var(--coral); color: #fff;
+      border: none; border-radius: 30px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+    .btn-payback:hover { background: #ff7f7f; transform: scale(1.03); }
+    .btn-skip {
+      padding: 12px 28px;
+      background: transparent; color: var(--muted);
+      border: 1px solid var(--border); border-radius: 30px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+    .btn-skip:hover { border-color: var(--coral); color: var(--coral); }
+    .debt-cleared {
+      font-size: 14px; color: var(--green);
+      font-weight: 700; margin-top: 8px;
+      display: none;
+    }
+    .carried-note {
+      font-size: 12px; color: var(--coral);
+      margin-top: 8px; display: none;
+    }
+    </style>
 </head>
 <body>
   <img class="pet-img" id="petImg" src="cat.svg"/>
@@ -127,13 +172,24 @@
     <div class="grade-label" id="gradeLabel">—</div>
   </div>
 
-  <button class="close-btn" onclick="window.pawback.closeReportCard()">Close & quit</button>
+  <div class="debt-wrap" id="debtWrap" style="display:none;">
+    <div class="debt-number" id="debtNum">0</div>
+    <div class="debt-label">minutes lost to distractions — pay it back?</div>
+    <div class="debt-btns">
+      <button class="btn-payback" id="btnPayback">Pay it back 🔒</button>
+      <button class="btn-skip"    id="btnSkip">Skip (carry over)</button>
+    </div>
+    <div class="debt-cleared" id="debtCleared">✅ Payback started — close this and lock in.</div>
+    <div class="carried-note" id="carriedNote">😒 Carried over. Tomorrow's quests will be harder.</div>
+  </div>
 
+  <button class="close-btn" onclick="window.pawback.closeReportCard()">Close & quit</button>
+  
   <script>
     const gradeColors = { S: '#5cdb95', A: '#4fc3f7', B: '#ff9f2f', C: '#ffee55', D: '#ff9f2f', F: '#ff5f5f' };
     const gradeGlows  = { S: 'rgba(92,219,149,0.12)', A: 'rgba(79,195,247,0.12)', B: 'rgba(255,159,47,0.10)', C: 'rgba(255,238,85,0.10)', D: 'rgba(255,159,47,0.08)', F: 'rgba(255,95,95,0.12)' };
 
-    Promise.all([window.pawback.getSessionStats(), window.pawback.getSettings()]).then(([stats, s]) => {
+    Promise.all([window.pawback.getSessionStats(), window.pawback.getSettings(), window.pawback.getDebt()]).then(([stats, s, debt]) => {
       document.getElementById('petImg').src = s.pet || 'cat.svg';
       document.getElementById('rcPounce').textContent = stats.pounceCount;
       document.getElementById('rcBreaks').textContent = stats.breaksTaken;
@@ -155,6 +211,26 @@
       document.getElementById('grade').style.color      = gradeColors[grade];
       document.getElementById('gradeWrap').style.setProperty('--grade-color', gradeColors[grade]);
       document.getElementById('gradeWrap').style.setProperty('--grade-glow',  gradeGlows[grade]);
+
+      // Debt section
+      const totalDebt = debt.debtMinutes || stats.debtMinutes || 0;
+      if (totalDebt > 0) {
+        document.getElementById('debtWrap').style.display = 'block';
+        document.getElementById('debtNum').textContent    = totalDebt;
+      }
+
+      document.getElementById('btnPayback').addEventListener('click', () => {
+        window.pawback.startPayback();
+        document.getElementById('btnPayback').style.display  = 'none';
+        document.getElementById('btnSkip').style.display     = 'none';
+        document.getElementById('debtCleared').style.display = 'block';
+      });
+      document.getElementById('btnSkip').addEventListener('click', () => {
+        window.pawback.skipPayback();
+        document.getElementById('btnPayback').style.display  = 'none';
+        document.getElementById('btnSkip').style.display     = 'none';
+        document.getElementById('carriedNote').style.display = 'block';
+      });
     });
   </script>
 </body>

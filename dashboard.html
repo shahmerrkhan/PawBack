@@ -3,23 +3,33 @@
 <head>
   <meta charset="UTF-8"/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #141414;
-      --surface: #1c1c1c;
-      --surface2: #242424;
-      --border: #2e2e2e;
-      --amber: #ff9f2f;
-      --amber-dim: #cc7a1a;
-      --amber-glow: rgba(255,159,47,0.15);
-      --text: #f0ece4;
-      --muted: #888;
-      --coral: #ff5f5f;
-      --blue: #4fc3f7;
-      --green: #5cdb95;
-      --radius: 14px;
-      --radius-sm: 8px;
+      --bg: #0e0e10;
+      --surface: #16161a;
+      --surface2: #1e1e24;
+      --surface3: #26262e;
+      --border: #2a2a32;
+      --border2: #353540;
+      --amber: #ffb347;
+      --amber-dim: #cc8822;
+      --amber-glow: rgba(255,179,71,0.12);
+      --amber-glow2: rgba(255,179,71,0.06);
+      --text: #eeeaf4;
+      --muted: #7a7a8a;
+      --muted2: #555565;
+      --coral: #ff6b6b;
+      --coral-glow: rgba(255,107,107,0.12);
+      --blue: #60cdff;
+      --blue-glow: rgba(96,205,255,0.12);
+      --green: #4ade80;
+      --green-glow: rgba(74,222,128,0.12);
+      --purple: #a78bfa;
+      --purple-glow: rgba(167,139,250,0.12);
+      --radius: 16px;
+      --radius-sm: 10px;
+      --radius-xs: 6px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -34,69 +44,99 @@
 
     /* ── SIDEBAR ── */
     .sidebar {
-      width: 200px;
+      width: 210px;
       background: var(--surface);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      padding: 24px 0 20px;
+      padding: 0 0 20px;
       flex-shrink: 0;
+      position: relative;
+    }
+    .sidebar::after {
+      content: '';
+      position: absolute;
+      top: 0; right: -1px;
+      width: 1px; height: 100%;
+      background: linear-gradient(180deg, transparent, var(--amber) 40%, var(--purple) 70%, transparent);
+      opacity: 0.3;
     }
     .logo {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 0 20px 24px;
+      padding: 22px 18px 20px;
       border-bottom: 1px solid var(--border);
     }
     .logo-icon {
-      width: 36px; height: 36px;
+      width: 38px; height: 38px;
       background: var(--amber-glow);
-      border: 1px solid var(--amber);
-      border-radius: 10px;
+      border: 1px solid rgba(255,179,71,0.3);
+      border-radius: 12px;
       display: flex; align-items: center; justify-content: center;
       font-size: 18px;
+      box-shadow: 0 0 20px rgba(255,179,71,0.15);
     }
-    .logo-text { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
-    .nav { padding: 16px 12px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .logo-text {
+      font-size: 18px; font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--amber), #ff8c42);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .nav { padding: 14px 10px; flex: 1; display: flex; flex-direction: column; gap: 2px; }
     .tab {
       display: flex; align-items: center; gap: 10px;
       padding: 10px 12px;
       border-radius: var(--radius-sm);
       cursor: pointer;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 500;
       color: var(--muted);
-      transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
+      transition: all 0.2s ease;
       user-select: none;
       border: 1px solid transparent;
+      position: relative;
     }
     .tab:hover { color: var(--text); background: var(--surface2); }
-    .tab.active { color: var(--amber); background: var(--amber-glow); border-color: rgba(255,159,47,0.25); }
-    .tab-icon { font-size: 16px; width: 20px; text-align: center; }
+    .tab.active {
+      color: var(--amber);
+      background: var(--amber-glow);
+      border-color: rgba(255,179,71,0.2);
+      font-weight: 600;
+    }
+    .tab.active::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 20%; height: 60%;
+      width: 3px; border-radius: 0 3px 3px 0;
+      background: var(--amber);
+      box-shadow: 0 0 8px var(--amber);
+    }
+    .tab-icon { font-size: 15px; width: 20px; text-align: center; }
     .sidebar-footer {
-      padding: 16px 20px 0;
+      padding: 14px 18px 0;
       border-top: 1px solid var(--border);
       font-size: 11px;
-      color: var(--muted);
-      line-height: 1.5;
+      color: var(--muted2);
+      line-height: 1.6;
     }
 
     /* ── CONTENT ── */
     .content { flex: 1; overflow: hidden; position: relative; }
     .page {
       position: absolute; inset: 0;
-      padding: 36px;
+      padding: 32px 36px;
       overflow-y: auto;
       opacity: 0;
-      transform: translateY(12px);
+      transform: translateY(10px);
       pointer-events: none;
-      transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.34,1.2,0.64,1);
+      transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34,1.2,0.64,1);
     }
     .page.active { opacity: 1; transform: translateY(0); pointer-events: all; }
 
-    h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.3px; }
-    .page-sub { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+    .page-header { margin-bottom: 24px; }
+    .page-header h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
+    .page-sub { font-size: 13px; color: var(--muted); }
 
     /* ── CARDS ── */
     .card {
@@ -104,123 +144,218 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 20px;
-      margin-bottom: 14px;
-      transition: border-color 0.2s;
+      margin-bottom: 12px;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .card:hover { border-color: #3a3a3a; }
-    .card-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
-    .card-value { font-size: 40px; font-weight: 800; color: var(--amber); line-height: 1; letter-spacing: -1px; }
+    .card:hover { border-color: var(--border2); box-shadow: 0 4px 24px rgba(0,0,0,0.3); }
+    .card-label {
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .card-value { font-size: 42px; font-weight: 900; line-height: 1; letter-spacing: -2px; }
+    .card-value.amber { color: var(--amber); }
     .card-value.blue  { color: var(--blue); }
     .card-value.coral { color: var(--coral); }
     .card-value.green { color: var(--green); }
+    .card-value.purple { color: var(--purple); }
 
     /* ── STATS GRID ── */
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
     .stats-grid .card { margin-bottom: 0; }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      border-radius: var(--radius) var(--radius) 0 0;
+      opacity: 0.8;
+    }
+    .stat-card.amber::before { background: linear-gradient(90deg, var(--amber), transparent); }
+    .stat-card.blue::before  { background: linear-gradient(90deg, var(--blue),  transparent); }
+    .stat-card.coral::before { background: linear-gradient(90deg, var(--coral), transparent); }
+    .stat-card.green::before { background: linear-gradient(90deg, var(--green), transparent); }
+    .stat-card:hover { border-color: var(--border2); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
 
-    /* ── GRAPH ── */
-    .graph-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 14px; }
-    .graph-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 16px; }
-    .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 80px; }
-    .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    .bar-wrap { width: 100%; display: flex; gap: 3px; align-items: flex-end; height: 70px; }
-    .bar { flex: 1; border-radius: 4px 4px 0 0; transition: height 0.6s cubic-bezier(0.34,1.2,0.64,1); min-height: 3px; }
-    .bar.focus { background: var(--blue); }
-    .bar.distracted { background: var(--coral); opacity: 0.7; }
-    .bar-label { font-size: 10px; color: var(--muted); }
-    .graph-legend { display: flex; gap: 16px; margin-top: 10px; }
-    .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-    .legend-item { font-size: 12px; color: var(--muted); display: flex; align-items: center; }
+    /* ── GLOW CARDS ── */
+    .glow-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 12px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+    .glow-card:hover { border-color: var(--border2); }
+    .glow-card::after {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      opacity: 0.06;
+      pointer-events: none;
+    }
+    .glow-card.amber::after { background: var(--amber); }
+    .glow-card.green::after  { background: var(--green); }
+    .glow-card.coral::after  { background: var(--coral); }
+    .glow-card.purple::after { background: var(--purple); }
 
     /* ── WELCOME ── */
-    .welcome-hero { text-align: center; padding: 20px 0 32px; }
-    .welcome-hero .hero-emoji { font-size: 64px; display: block; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
-    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-    .welcome-hero h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
-    .welcome-hero p { font-size: 14px; color: var(--muted); max-width: 340px; margin: 0 auto 28px; line-height: 1.6; }
-    .steps { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+    .welcome-hero {
+      text-align: center;
+      padding: 16px 0 28px;
+    }
+    .focus-ring-wrap {
+      width: 140px; height: 140px;
+      margin: 0 auto 20px;
+      position: relative;
+    }
+    .focus-ring-wrap svg { transform: rotate(-90deg); }
+    .focus-ring-bg { fill: none; stroke: var(--surface3); stroke-width: 8; }
+    .focus-ring-fill {
+      fill: none; stroke: var(--amber); stroke-width: 8;
+      stroke-linecap: round;
+      stroke-dasharray: 377; stroke-dashoffset: 377;
+      transition: stroke-dashoffset 1.2s cubic-bezier(0.34,1.2,0.64,1);
+      filter: drop-shadow(0 0 6px rgba(255,179,71,0.6));
+    }
+    .focus-ring-label {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .focus-ring-pct { font-size: 26px; font-weight: 900; letter-spacing: -1px; color: var(--amber); }
+    .focus-ring-sub { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; }
+    .welcome-hero h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+    .welcome-hero p  { font-size: 13px; color: var(--muted); max-width: 320px; margin: 0 auto 24px; line-height: 1.6; }
+    .steps { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
     .step-row {
       display: flex; align-items: flex-start; gap: 14px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 16px;
-      transition: border-color 0.2s, transform 0.2s;
+      padding: 14px 16px;
+      transition: all 0.2s;
     }
-    .step-row:hover { border-color: #3a3a3a; transform: translateX(3px); }
+    .step-row:hover { border-color: var(--border2); transform: translateX(4px); }
     .step-num {
-      width: 28px; height: 28px; border-radius: 50%;
-      background: var(--amber-glow); border: 1px solid var(--amber); color: var(--amber);
-      font-size: 13px; font-weight: 700;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--amber-glow); border: 1px solid rgba(255,179,71,0.3);
+      color: var(--amber); font-size: 12px; font-weight: 700;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
-    .step-text b { display: block; font-size: 14px; font-weight: 600; margin-bottom: 2px; }
-    .step-text span { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .step-text b    { display: block; font-size: 13.5px; font-weight: 700; margin-bottom: 2px; }
+    .step-text span { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
     .start-btn {
-      display: block; width: 100%; padding: 16px;
-      background: var(--amber); color: #141414; border: none;
+      display: block; width: 100%; padding: 15px;
+      background: linear-gradient(135deg, var(--amber), #ff8c42);
+      color: #0e0e10; border: none;
       border-radius: var(--radius); font-family: 'Outfit', sans-serif;
-      font-size: 16px; font-weight: 700; cursor: pointer;
-      transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1); letter-spacing: -0.2px;
+      font-size: 15px; font-weight: 800; cursor: pointer;
+      transition: all 0.2s; letter-spacing: -0.2px;
+      box-shadow: 0 4px 20px rgba(255,179,71,0.3);
     }
-    .start-btn:hover  { background: #ffb84d; transform: scale(1.02); }
+    .start-btn:hover  { transform: scale(1.02); box-shadow: 0 6px 28px rgba(255,179,71,0.4); }
     .start-btn:active { transform: scale(0.98); }
+
+    /* ── GRAPH ── */
+    .graph-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; margin-bottom: 12px;
+    }
+    .graph-title {
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;
+    }
+    .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 80px; }
+    .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .bar-wrap   { width: 100%; display: flex; gap: 3px; align-items: flex-end; height: 70px; }
+    .bar { flex: 1; border-radius: 4px 4px 0 0; transition: height 0.6s cubic-bezier(0.34,1.2,0.64,1); min-height: 3px; }
+    .bar.focus      { background: var(--blue); }
+    .bar.distracted { background: var(--coral); opacity: 0.7; }
+    .bar-label { font-size: 10px; color: var(--muted); }
+    .graph-legend { display: flex; gap: 16px; margin-top: 12px; }
+    .legend-dot  { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+    .legend-item { font-size: 12px; color: var(--muted); display: flex; align-items: center; }
 
     /* ── SETTINGS ── */
     .field { margin-bottom: 20px; }
-    .field label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+    .field label {
+      display: block; font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;
+    }
     .multi-select-box {
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 10px; min-height: 80px; max-height: 160px; overflow-y: auto;
+      border-radius: var(--radius); padding: 10px; min-height: 72px; max-height: 150px; overflow-y: auto;
     }
-    .multi-select-box:focus-within { border-color: var(--amber); }
+    .multi-select-box:focus-within { border-color: rgba(255,179,71,0.4); box-shadow: 0 0 0 3px rgba(255,179,71,0.06); }
     .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
     .tag {
       display: flex; align-items: center; gap: 5px;
-      background: var(--amber-glow); border: 1px solid rgba(255,159,47,0.3);
-      border-radius: 20px; padding: 4px 10px; font-size: 13px; font-weight: 500; color: var(--amber);
-      transition: all 0.15s;
+      background: var(--amber-glow); border: 1px solid rgba(255,179,71,0.25);
+      border-radius: 20px; padding: 4px 10px; font-size: 12.5px; font-weight: 500; color: var(--amber);
     }
-    .tag .remove { cursor: pointer; font-size: 14px; color: var(--amber-dim); line-height: 1; transition: color 0.1s; }
+    .tag .remove { cursor: pointer; font-size: 14px; color: var(--amber-dim); transition: color 0.1s; }
     .tag .remove:hover { color: var(--coral); }
-    .proc-search { width: 100%; background: transparent; border: none; outline: none; color: var(--text); font-family: 'Outfit', sans-serif; font-size: 13px; padding: 4px 2px; }
-    .proc-search::placeholder { color: var(--muted); }
-    .proc-dropdown { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); max-height: 180px; overflow-y: auto; margin-top: 6px; display: none; }
+    .proc-search {
+      width: 100%; background: transparent; border: none; outline: none;
+      color: var(--text); font-family: 'Outfit', sans-serif; font-size: 13px; padding: 4px 2px;
+    }
+    .proc-search::placeholder { color: var(--muted2); }
+    .proc-dropdown {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); max-height: 180px; overflow-y: auto;
+      margin-top: 6px; display: none;
+    }
     .proc-dropdown.open { display: block; }
-    .proc-item { padding: 8px 12px; font-size: 13px; cursor: pointer; transition: background 0.12s; border-radius: 6px; margin: 2px; }
+    .proc-item { padding: 8px 12px; font-size: 13px; cursor: pointer; transition: background 0.12s; border-radius: var(--radius-xs); margin: 2px; }
     .proc-item:hover { background: var(--amber-glow); color: var(--amber); }
-    .pet-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .pet-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
     .pet-option {
       background: var(--surface); border: 2px solid var(--border);
-      border-radius: var(--radius); padding: 12px 8px; text-align: center; cursor: pointer;
-      transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
+      border-radius: var(--radius); padding: 10px 6px; text-align: center; cursor: pointer;
+      transition: all 0.2s;
     }
-    .pet-option:hover { border-color: #3a3a3a; transform: scale(1.04); }
-    .pet-option.selected { border-color: var(--amber); background: var(--amber-glow); }
-    .pet-option img { width: 52px; height: 52px; object-fit: contain; display: block; margin: 0 auto 6px; }
-    .pet-option span { font-size: 12px; font-weight: 500; color: var(--muted); }
+    .pet-option:hover { border-color: var(--border2); transform: translateY(-2px); }
+    .pet-option.selected { border-color: var(--amber); background: var(--amber-glow); box-shadow: 0 0 20px rgba(255,179,71,0.15); }
+    .pet-option img { width: 48px; height: 48px; object-fit: contain; display: block; margin: 0 auto 6px; }
+    .pet-option span { font-size: 11px; font-weight: 600; color: var(--muted); }
     .pet-option.selected span { color: var(--amber); }
     .tone-option.selected { border-color: var(--amber) !important; background: var(--amber-glow) !important; color: var(--amber); }
-    .num-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .num-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     input[type=number] {
       width: 100%; background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius-sm); color: var(--text); font-family: 'Outfit', sans-serif;
-      font-size: 15px; font-weight: 600; padding: 10px 14px; outline: none; transition: border-color 0.15s;
+      font-size: 15px; font-weight: 600; padding: 10px 14px; outline: none; transition: all 0.15s;
     }
-    input[type=number]:focus { border-color: var(--amber); }
+    input[type=number]:focus { border-color: rgba(255,179,71,0.4); box-shadow: 0 0 0 3px rgba(255,179,71,0.06); }
     .save-btn {
-      width: 100%; padding: 14px; background: var(--amber); color: #141414;
-      border: none; border-radius: var(--radius); font-family: 'Outfit', sans-serif;
-      font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 24px;
-      transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, var(--amber), #ff8c42);
+      color: #0e0e10; border: none; border-radius: var(--radius);
+      font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 24px;
+      transition: all 0.2s; box-shadow: 0 4px 20px rgba(255,179,71,0.25);
     }
-    .save-btn:hover  { background: #ffb84d; transform: scale(1.01); }
+    .save-btn:hover  { transform: scale(1.01); box-shadow: 0 6px 28px rgba(255,179,71,0.35); }
     .save-btn:active { transform: scale(0.98); }
     .saved-toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px);
-      background: var(--green); color: #141414; padding: 10px 24px; border-radius: 30px;
-      font-size: 14px; font-weight: 600; opacity: 0;
+      background: var(--green); color: #0e0e10; padding: 10px 24px; border-radius: 30px;
+      font-size: 14px; font-weight: 700; opacity: 0;
       transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); pointer-events: none; z-index: 999;
+      box-shadow: 0 4px 20px rgba(74,222,128,0.35);
     }
     .saved-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -228,82 +363,115 @@
     .shortcut-row {
       display: flex; align-items: center; justify-content: space-between;
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 16px 20px; margin-bottom: 10px; transition: border-color 0.2s;
+      border-radius: var(--radius); padding: 14px 18px; margin-bottom: 8px; transition: all 0.2s;
     }
-    .shortcut-row:hover { border-color: #3a3a3a; }
-    .shortcut-desc { font-size: 14px; }
-    .shortcut-desc small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .shortcut-row:hover { border-color: var(--border2); }
+    .shortcut-desc { font-size: 13.5px; font-weight: 500; }
+    .shortcut-desc small { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
     .kbd { display: flex; gap: 4px; }
     .key {
       background: var(--surface2); border: 1px solid var(--border);
-      border-bottom: 3px solid var(--border); border-radius: 6px;
-      padding: 4px 10px; font-family: monospace; font-size: 12px; font-weight: 600;
+      border-bottom: 3px solid var(--border2); border-radius: var(--radius-xs);
+      padding: 4px 10px; font-family: monospace; font-size: 12px; font-weight: 700;
       color: var(--text); white-space: nowrap;
     }
 
     /* ── QUESTS ── */
-    .xp-bar-wrap { width: 100%; margin-bottom: 20px; }
+    .xp-bar-wrap { width: 100%; margin-bottom: 18px; }
     .xp-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-    .xp-bar { width: 100%; height: 8px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
-    .xp-fill { height: 100%; background: linear-gradient(90deg, #a78bfa, #7c3aed); border-radius: 99px; transition: width 0.5s ease; }
+    .xp-bar  { width: 100%; height: 8px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+    .xp-fill { height: 100%; background: linear-gradient(90deg, #7c3aed, #a78bfa, #c084fc); border-radius: 99px; transition: width 0.6s ease; box-shadow: 0 0 10px rgba(167,139,250,0.4); }
     .quest-card {
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 16px 18px; margin-bottom: 12px;
-      transition: border-color 0.3s;
+      border-radius: var(--radius); padding: 16px 18px; margin-bottom: 10px; transition: all 0.3s;
     }
-    .quest-card.done { border-color: var(--green); opacity: 0.75; }
+    .quest-card.done { border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.04); }
     .quest-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .quest-text { font-size: 14px; font-weight: 500; flex: 1; }
+    .quest-text { font-size: 13.5px; font-weight: 500; flex: 1; }
     .quest-badge {
       font-size: 11px; padding: 3px 9px; border-radius: 99px;
-      background: var(--surface2); color: #a78bfa; white-space: nowrap; margin-left: 10px;
+      background: var(--purple-glow); color: var(--purple); white-space: nowrap; margin-left: 10px; font-weight: 600;
     }
-    .quest-card.done .quest-badge { background: rgba(92,219,149,0.15); color: var(--green); }
-    .quest-prog-bar { width: 100%; height: 6px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
-    .quest-prog-fill { height: 100%; background: linear-gradient(90deg, #818cf8, #a78bfa); border-radius: 99px; transition: width 0.4s ease; }
-    .quest-card.done .quest-prog-fill { background: linear-gradient(90deg, var(--green), #22c55e); }
+    .quest-card.done .quest-badge { background: var(--green-glow); color: var(--green); }
+    .quest-prog-bar { width: 100%; height: 5px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+    .quest-prog-fill { height: 100%; background: linear-gradient(90deg, #7c3aed, #a78bfa); border-radius: 99px; transition: width 0.5s ease; }
+    .quest-card.done .quest-prog-fill { background: linear-gradient(90deg, #16a34a, var(--green)); }
     .quest-prog-label { font-size: 11px; color: var(--muted); margin-top: 5px; text-align: right; }
 
-    /* ── FOCUS REPLAY HEATMAP ── */
-    .heatmap-wrap { margin-top: 8px; }
-    .heatmap-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, 12px);
-      gap: 3px; margin-bottom: 10px;
+    /* ── HEATMAP (GitHub style) ── */
+    .heatmap-scroll { overflow-x: auto; padding-bottom: 8px; }
+    .heatmap-github {
+      display: inline-grid;
+      grid-template-rows: repeat(7, 13px);
+      grid-auto-flow: column;
+      gap: 3px;
     }
     .hm-cell {
-      width: 12px; height: 12px; border-radius: 3px;
+      width: 13px; height: 13px; border-radius: 3px;
       cursor: default; transition: transform 0.1s;
+      position: relative;
     }
-    .hm-cell:hover { transform: scale(1.4); }
-    .hm-cell.focused    { background: var(--green); }
-    .hm-cell.pounced    { background: var(--coral); }
-    .hm-cell.on-break   { background: var(--amber); opacity: 0.6; }
-    .hm-cell.idle       { background: var(--surface2); }
-    .heatmap-legend { display: flex; gap: 14px; flex-wrap: wrap; }
-    .hm-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
-    .hm-dot { width: 10px; height: 10px; border-radius: 2px; }
+    .hm-cell:hover { transform: scale(1.5); z-index: 10; }
+    .hm-cell.level-0 { background: var(--surface3); }
+    .hm-cell.level-1 { background: #166534; }
+    .hm-cell.level-2 { background: #15803d; }
+    .hm-cell.level-3 { background: #16a34a; }
+    .hm-cell.level-4 { background: var(--green); box-shadow: 0 0 4px rgba(74,222,128,0.4); }
+    .hm-day-labels { display: flex; flex-direction: column; gap: 3px; margin-right: 6px; }
+    .hm-day-label { font-size: 9px; color: var(--muted2); height: 13px; display: flex; align-items: center; }
+    .heatmap-outer { display: flex; align-items: flex-start; }
+    .hm-month-labels { display: flex; gap: 0; margin-bottom: 4px; margin-left: 30px; }
+    .hm-month-label { font-size: 10px; color: var(--muted); }
+
+    /* ── Focus Replay (session timeline) ── */
+    .replay-grid { display: flex; flex-wrap: wrap; gap: 2px; }
+    .replay-cell {
+      width: 10px; height: 10px; border-radius: 2px;
+      transition: transform 0.1s;
+    }
+    .replay-cell:hover { transform: scale(1.5); }
+    .replay-cell.focused  { background: var(--green); }
+    .replay-cell.pounced  { background: var(--coral); }
+    .replay-cell.on-break { background: var(--amber); opacity: 0.7; }
+    .replay-cell.idle     { background: var(--surface3); }
 
     /* ── PERSONA ── */
-    .persona-wrap { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
+    .persona-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
     .persona-card {
-      background: var(--surface);
+      background: var(--surface2);
       border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px 18px;
-      display: flex; align-items: flex-start; gap: 14px;
-      transition: border-color 0.2s;
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      display: flex; align-items: flex-start; gap: 12px;
+      transition: all 0.2s;
     }
-    .persona-card:hover { border-color: #3a3a3a; }
-    .persona-emoji { font-size: 28px; flex-shrink: 0; line-height: 1; margin-top: 2px; }
-    .persona-label { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 3px; }
-    .persona-desc  { font-size: 13px; color: var(--muted); line-height: 1.4; }
+    .persona-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+    .persona-emoji { font-size: 24px; flex-shrink: 0; line-height: 1; margin-top: 1px; }
+    .persona-label { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+    .persona-desc  { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
     .persona-empty { font-size: 13px; color: var(--muted); padding: 8px 0; }
 
+    /* ── MOOD TIMELINE ── */
+    .mood-strip { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .mood-chip {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 8px 10px;
+      font-size: 10px; color: var(--muted);
+      transition: all 0.2s;
+    }
+    .mood-chip:hover { border-color: var(--border2); transform: scale(1.05); }
+    .mood-chip span.emoji { font-size: 20px; }
+
+    /* ── PROGRESS BAR ── */
+    .prog-bar-wrap { background: var(--surface2); border-radius: 99px; height: 10px; overflow: hidden; }
+    .prog-bar-fill { height: 100%; border-radius: 99px; transition: width 0.7s cubic-bezier(0.34,1.2,0.64,1); }
+
     /* scrollbar */
-    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-    ::-webkit-scrollbar-thumb:hover { background: #444; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: #555; }
   </style>
 </head>
 <body>
@@ -322,22 +490,31 @@
     <div class="tab" data-page="pomodoro"><span class="tab-icon">🍅</span> Pomodoro</div>
     <div class="tab" data-page="quests"><span class="tab-icon">🎯</span> Quests</div>
   </nav>
-  <div class="sidebar-footer">Runs in background.<br>Close anytime.</div>
+  <div class="sidebar-footer">Runs in background.<br>Close anytime 🐾</div>
 </div>
 
 <div class="content">
 
-  <!-- WELCOME -->
+  <!-- HOME -->
   <div class="page active" id="welcome">
     <div class="welcome-hero">
-      <span class="hero-emoji">🐾</span>
+      <div class="focus-ring-wrap">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <circle class="focus-ring-bg" cx="70" cy="70" r="60"/>
+          <circle class="focus-ring-fill" id="focusRingFill" cx="70" cy="70" r="60"/>
+        </svg>
+        <div class="focus-ring-label">
+          <div class="focus-ring-pct" id="focusRingPct">0%</div>
+          <div class="focus-ring-sub">of goal</div>
+        </div>
+      </div>
       <h1>Ready to lock in?</h1>
-      <p>Your cat will keep an eye on you. Wander off and face the consequences.</p>
+      <p>Your pet watches from the corner. Wander off and face the consequences.</p>
     </div>
     <div class="steps">
       <div class="step-row">
         <div class="step-num">1</div>
-        <div class="step-text"><b>Pick your allowed apps</b><span>Add whatever you'll actually be working in — your editor, terminal, docs.</span></div>
+        <div class="step-text"><b>Pick your allowed apps</b><span>Add whatever you'll actually work in — editor, terminal, docs.</span></div>
       </div>
       <div class="step-row">
         <div class="step-num">2</div>
@@ -353,41 +530,107 @@
       </div>
     </div>
     <button class="start-btn" id="startBtn">Set up & start →</button>
+
+    <div class="glow-card" style="margin-top:16px;" id="contractCard">
+      <div class="card-label">📝 Focus Contract</div>
+      <div id="contractStatus" style="font-size:13px;color:var(--muted);margin:8px 0 12px;">Commit to a task and a time. Breaking it shows on your report card.</div>
+      <div id="contractActive" style="display:none;">
+        <div id="contractTask" style="font-size:16px;font-weight:700;margin-bottom:4px;"></div>
+        <div id="contractProgress" style="font-size:13px;color:var(--muted);margin-bottom:10px;"></div>
+        <button onclick="endContract()" style="padding:8px 20px;background:var(--coral);color:#fff;border:none;border-radius:20px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">End contract</button>
+      </div>
+      <div id="contractForm">
+        <input id="contractTaskInput" placeholder="What are you working on?" style="width:100%;padding:10px 12px;background:#1a1a1a;border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:13px;margin-bottom:8px;"/>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" id="contractMins" value="60" min="5" max="480" style="width:80px;padding:10px;background:#1a1a1a;border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:13px;"/>
+          <span style="font-size:13px;color:var(--muted);">minutes</span>
+          <button onclick="submitContract()" style="flex:1;padding:10px;background:var(--amber);color:#141414;border:none;border-radius:10px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Commit 🔒</button>
+        </div>
+      </div>
+      <div id="contractRate" style="font-size:11px;color:var(--muted);margin-top:10px;"></div>
+    </div>
   </div>
 
   <!-- STATS -->
   <div class="page" id="stats">
-    <h2>Today's Session</h2>
-    <p class="page-sub">Updated live every 30 seconds.</p>
+    <div class="page-header">
+      <h2>Today's Session</h2>
+      <p class="page-sub">Updates every 30 seconds.</p>
+    </div>
     <div class="stats-grid">
-      <div class="card"><div class="card-label">🐾 Times caught</div><div class="card-value" id="statPounce">—</div></div>
-      <div class="card"><div class="card-label">☕ Breaks taken</div><div class="card-value" id="statBreaks">—</div></div>
-      <div class="card"><div class="card-label">⏱ Session</div><div class="card-value blue" id="statMinutes">—</div></div>
-      <div class="card"><div class="card-label">🎯 Focused</div><div class="card-value green" id="statFocus">—</div></div>
-    </div>
-    <div class="card" style="margin-bottom:14px;">
-      <div class="card-label">🔥 Focus streak</div>
-      <div class="card-value coral" id="statStreak">—</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:6px;">Days in a row you've opened PawBack</div>
-    </div>
-    <div class="card" style="margin-bottom:14px;">
-      <div class="card-label">🎯 Daily goal</div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:8px;">
-        <span id="goalProgressText">— / — min</span>
+      <div class="stat-card coral">
+        <div class="card-label">🐾 Times Caught</div>
+        <div class="card-value coral" id="statPounce">—</div>
       </div>
-      <div style="background:var(--surface2);border-radius:99px;height:12px;overflow:hidden;">
-        <div id="goalBar" style="height:100%;background:var(--green);width:0%;border-radius:99px;transition:width 0.6s cubic-bezier(0.34,1.2,0.64,1);"></div>
+      <div class="stat-card amber">
+        <div class="card-label">☕ Breaks Taken</div>
+        <div class="card-value amber" id="statBreaks">—</div>
       </div>
-    </div>
-    <div class="card" style="margin-bottom:14px;">
-      <div class="card-label">🧬 Your Focus Persona</div>
-      <div id="personaWrap" class="persona-wrap" style="margin-top:12px;">
-        <div class="persona-empty">Loading your persona...</div>
+      <div class="stat-card blue">
+        <div class="card-label">⏱ Session</div>
+        <div class="card-value blue" id="statMinutes">—</div>
+      </div>
+      <div class="stat-card green">
+        <div class="card-label">🎯 Focused</div>
+        <div class="card-value green" id="statFocus">—</div>
       </div>
     </div>
 
+    <div class="glow-card coral" style="margin-bottom:12px;">
+      <div class="card-label">🔥 Focus Streak</div>
+      <div class="card-value coral" id="statStreak">—</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px;">Days in a row you've used PawBack</div>
+    </div>
+
+    <div class="glow-card green" style="margin-bottom:12px;">
+      <div class="card-label">🎯 Daily Goal</div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:10px;">
+        <span id="goalProgressText">— / — min</span>
+        <span id="goalPct">0%</span>
+      </div>
+      <div class="prog-bar-wrap">
+        <div class="prog-bar-fill" id="goalBar" style="background:linear-gradient(90deg,#16a34a,var(--green));width:0%;"></div>
+      </div>
+    </div>
+
+    <div class="glow-card purple" style="margin-bottom:12px;">
+      <div class="card-label">🧬 Your Focus Persona</div>
+      <div class="glow-card" style="margin-bottom:12px;">
+      <div class="card-label">🧬 Focus DNA</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">What PawBack has learned about you — and how it fights your patterns before they happen.</div>
+      <div id="focusDnaWrap" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+      <div id="personaWrap" class="persona-grid">
+        <div class="persona-empty" style="grid-column:1/-1;">Keep using PawBack — your persona builds over time 🐾</div>
+      </div>
+    </div>
+
+    <div class="glow-card" style="margin-bottom:12px;">
+      <div class="card-label">🎮 Pounce Replay</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Every minute of your session — colour coded.</div>
+      <div id="replayGrid" style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px;"></div>
+      <div style="display:flex;gap:12px;font-size:11px;color:var(--muted);">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#5cdb95;margin-right:4px;"></span>Focused</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#ff5f5f;margin-right:4px;"></span>Pounced</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#4fc3f7;margin-right:4px;"></span>Break</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#333;margin-right:4px;"></span>Idle</span>
+      </div>
+    </div>
+
+    <div class="glow-card" style="margin-bottom:12px;">
+      <div class="card-label">👻 Ghost Mode — vs Yesterday</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">The grey line is yesterday's you at this point in the session.</div>
+      <div id="ghostChart" style="display:flex;align-items:flex-end;gap:2px;height:60px;"></div>
+    </div>
+
+    <div class="glow-card" style="margin-bottom:12px;">
+      <div class="card-label">💀 What's Killing Your Focus</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Apps that triggered the most pounces — all time.</div>
+      <div id="appHeatmapWrap" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+
     <div class="graph-card">
-      <div class="graph-title">Focus vs distracted — this session</div>
+      <div class="graph-title">Focus vs Distracted — This Session</div>
       <div class="bar-chart" id="barChart"></div>
       <div class="graph-legend">
         <div class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span>Focused</div>
@@ -398,8 +641,10 @@
 
   <!-- SETTINGS -->
   <div class="page" id="settings">
-    <h2>Settings</h2>
-    <p class="page-sub">Changes save when you click Save.</p>
+    <div class="page-header">
+      <h2>Settings</h2>
+      <p class="page-sub">Changes save when you click Save.</p>
+    </div>
 
     <div class="field">
       <label>Allowed apps</label>
@@ -411,7 +656,7 @@
     </div>
 
     <div class="field">
-      <label>Blocked apps <span style="font-size:11px;color:var(--coral);font-weight:400;text-transform:none;">(instant pounce, no grace)</span></label>
+      <label>Blocked apps <span style="font-size:11px;color:var(--coral);font-weight:400;text-transform:none;">(instant pounce)</span></label>
       <div class="multi-select-box">
         <div class="tag-list" id="blockedTagList"></div>
         <input class="proc-search" id="blockedSearch" placeholder="Search running apps to block…" autocomplete="off"/>
@@ -428,11 +673,11 @@
       <label>Timers</label>
       <div class="num-row">
         <div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Break duration (min)</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Break duration (min)</div>
           <input type="number" id="breakDurationMin" min="1"/>
         </div>
         <div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Pause duration (min)</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Pause duration (min)</div>
           <input type="number" id="pauseDurationMin" min="1"/>
         </div>
       </div>
@@ -445,10 +690,10 @@
 
     <div class="field">
       <label>Pounce tone</label>
-      <div style="display:flex;gap:10px;">
-        <div class="tone-option" data-tone="gentle" style="flex:1;padding:12px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);text-align:center;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.15s;">🌸 Gentle</div>
-        <div class="tone-option" data-tone="sassy"  style="flex:1;padding:12px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);text-align:center;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.15s;">😼 Sassy</div>
-        <div class="tone-option" data-tone="brutal" style="flex:1;padding:12px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);text-align:center;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.15s;">💀 Brutal</div>
+      <div style="display:flex;gap:8px;">
+        <div class="tone-option" data-tone="gentle" style="flex:1;padding:12px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);text-align:center;cursor:pointer;font-size:13px;font-weight:700;transition:all 0.15s;">🌸 Gentle</div>
+        <div class="tone-option" data-tone="sassy"  style="flex:1;padding:12px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);text-align:center;cursor:pointer;font-size:13px;font-weight:700;transition:all 0.15s;">😼 Sassy</div>
+        <div class="tone-option" data-tone="brutal" style="flex:1;padding:12px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);text-align:center;cursor:pointer;font-size:13px;font-weight:700;transition:all 0.15s;">💀 Brutal</div>
       </div>
     </div>
 
@@ -468,46 +713,74 @@
 
   <!-- HISTORY -->
   <div class="page" id="history">
-    <h2>Weekly History</h2>
-    <p class="page-sub">Last 7 days of focus data.</p>
-    <div class="graph-card">
-      <div class="graph-title">🔴 Focus Replay — today's timeline</div>
-      <div class="heatmap-wrap">
-        <div class="heatmap-grid" id="heatmapGrid"></div>
-        <div class="heatmap-legend">
-          <div class="hm-legend-item"><div class="hm-dot" style="background:var(--green)"></div> Focused</div>
-          <div class="hm-legend-item"><div class="hm-dot" style="background:var(--coral)"></div> Pounced</div>
-          <div class="hm-legend-item"><div class="hm-dot" style="background:var(--amber);opacity:.6"></div> Break</div>
-          <div class="hm-legend-item"><div class="hm-dot" style="background:var(--surface2)"></div> Idle</div>
-        </div>
-      </div>
+    <div class="page-header">
+      <h2>History</h2>
+      <p class="page-sub">Your focus data over time.</p>
     </div>
-    <div class="graph-card">
-      <div class="graph-title">Focus minutes per day</div>
+
+    <div class="graph-card" style="margin-bottom:12px;">
+      <div class="graph-title">📅 Focus minutes — last 7 days</div>
       <div class="bar-chart" id="weeklyChart" style="height:100px;align-items:flex-end;"></div>
-      <div class="graph-legend" style="margin-top:12px;">
+      <div class="graph-legend" style="margin-top:10px;">
         <div class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span>Focused</div>
       </div>
     </div>
-    <div class="card" style="margin-bottom:14px;">
-      <div class="card-label">🐾 Pet Health</div>
-      <div style="background:var(--surface2);border-radius:8px;height:14px;margin-top:8px;overflow:hidden;">
-        <div id="petHealthBar" style="height:100%;width:70%;background:var(--amber);transition:width 0.4s, background 0.4s;"></div>
+
+    <div class="graph-card" style="margin-bottom:12px;">
+      <div class="graph-title">🟩 Focus Heatmap — last 10 weeks</div>
+      <div id="heatmapMonthRow" class="hm-month-labels" style="margin-bottom:6px;"></div>
+      <div class="heatmap-outer">
+        <div class="hm-day-labels">
+          <div class="hm-day-label">Mon</div>
+          <div class="hm-day-label"></div>
+          <div class="hm-day-label">Wed</div>
+          <div class="hm-day-label"></div>
+          <div class="hm-day-label">Fri</div>
+          <div class="hm-day-label"></div>
+          <div class="hm-day-label">Sun</div>
+        </div>
+        <div class="heatmap-scroll">
+          <div class="heatmap-github" id="heatmapGithub"></div>
+        </div>
       </div>
-      <div id="petHealthText" style="font-size:13px;color:var(--muted);margin-top:6px;">Thriving (70)</div>
-    </div>
-    <div class="card" style="margin-bottom:14px;">
-      <div class="card-label">📅 This week</div>
-      <div id="weekSummary" style="font-size:14px;color:var(--muted);margin-top:4px;">—</div>
-    </div>
-    <div class="card" style="margin-bottom:14px;">
-      <div class="card-label">🐾 Pet Health</div>
-      <div style="background:var(--surface2);border-radius:8px;height:14px;margin-top:8px;overflow:hidden;">
-        <div id="petHealthBar" style="height:100%;width:70%;background:var(--amber);transition:width 0.4s, background 0.4s;"></div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:10px;font-size:11px;color:var(--muted);">
+        Less
+        <div style="width:13px;height:13px;border-radius:3px;background:var(--surface3);"></div>
+        <div style="width:13px;height:13px;border-radius:3px;background:#166534;"></div>
+        <div style="width:13px;height:13px;border-radius:3px;background:#15803d;"></div>
+        <div style="width:13px;height:13px;border-radius:3px;background:#16a34a;"></div>
+        <div style="width:13px;height:13px;border-radius:3px;background:var(--green);"></div>
+        More
       </div>
-      <div id="petHealthText" style="font-size:13px;color:var(--muted);margin-top:6px;">Thriving (70)</div>
     </div>
-    <div class="card" style="margin-bottom:14px;">
+
+    <div class="graph-card" style="margin-bottom:12px;">
+      <div class="graph-title">🔴 Focus Replay — today's session</div>
+      <div class="replay-grid" id="heatmapGrid"></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;">
+        <div class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>Focused</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--coral)"></span>Pounced</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--amber);opacity:.7"></span>Break</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--surface3)"></span>Idle</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-label">🐾 Pet Health</div>
+      <div class="prog-bar-wrap" style="margin-top:10px;">
+        <div class="prog-bar-fill" id="petHealthBar" style="background:var(--amber);width:70%;"></div>
+      </div>
+      <div id="petHealthText" style="font-size:12px;color:var(--muted);margin-top:6px;">Thriving (70)</div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-label">😊 Mood Log — this session</div>
+      <div class="mood-strip" id="moodTimeline">
+        <div style="font-size:12px;color:var(--muted);">No mood check-ins yet — they happen every 30 min of focus.</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px;">
       <div class="card-label">📅 This week</div>
       <div id="weekSummary" style="font-size:14px;color:var(--muted);margin-top:4px;">—</div>
     </div>
@@ -515,31 +788,33 @@
 
   <!-- POMODORO -->
   <div class="page" id="pomodoro">
-    <h2>Pomodoro Timer</h2>
-    <p class="page-sub">Timed focus sessions with automatic breaks.</p>
-    <div class="card" style="text-align:center;padding:32px 20px;margin-bottom:14px;">
-      <div id="pomDisplay" style="font-size:64px;font-weight:800;letter-spacing:-2px;color:var(--amber);font-family:'Outfit',sans-serif;line-height:1;">—</div>
-      <div id="pomLabel"   style="font-size:14px;color:var(--muted);margin-top:8px;">Not running</div>
-      <div id="pomRound"   style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+    <div class="page-header">
+      <h2>Pomodoro</h2>
+      <p class="page-sub">Timed focus sessions with automatic breaks.</p>
     </div>
-    <div class="card" style="margin-bottom:14px;">
+    <div class="card" style="text-align:center;padding:36px 20px;margin-bottom:12px;">
+      <div id="pomDisplay" style="font-size:72px;font-weight:900;letter-spacing:-3px;color:var(--amber);font-family:'Outfit',sans-serif;line-height:1;text-shadow:0 0 40px rgba(255,179,71,0.3);">—</div>
+      <div id="pomLabel" style="font-size:14px;color:var(--muted);margin-top:10px;">Not running</div>
+      <div id="pomRound" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+    </div>
+    <div class="card" style="margin-bottom:12px;">
       <div class="card-label">Timer settings</div>
       <div class="num-row" style="margin-top:10px;">
         <div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Work (min)</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Work (min)</div>
           <input type="number" id="pomWork" value="25" min="1" max="120"/>
         </div>
         <div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Break (min)</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Break (min)</div>
           <input type="number" id="pomBreak" value="5" min="1" max="60"/>
         </div>
       </div>
     </div>
-    <div style="display:flex;gap:12px;margin-bottom:14px;">
-      <button id="pomStartBtn" style="flex:1;padding:14px;background:var(--amber);color:#141414;border:none;border-radius:var(--radius);font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.18s cubic-bezier(0.34,1.56,0.64,1);">🍅 Start</button>
-      <button id="pomStopBtn"  style="flex:1;padding:14px;background:var(--surface);color:var(--muted);border:1px solid var(--border);border-radius:var(--radius);font-family:'Outfit',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.18s;">Stop</button>
+    <div style="display:flex;gap:10px;margin-bottom:12px;">
+      <button id="pomStartBtn" style="flex:1;padding:14px;background:linear-gradient(135deg,var(--amber),#ff8c42);color:#0e0e10;border:none;border-radius:var(--radius);font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 20px rgba(255,179,71,0.25);">🍅 Start</button>
+      <button id="pomStopBtn"  style="flex:1;padding:14px;background:var(--surface);color:var(--muted);border:1px solid var(--border);border-radius:var(--radius);font-family:'Outfit',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;">Stop</button>
     </div>
-    <div class="card" style="margin-bottom:14px;">
+    <div class="card">
       <div class="card-label">⚠️ Boss Mode</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:12px;margin-top:4px;">No breaks, no snooze, no mercy. Pure lock-in.</div>
       <button id="bossModeBtn" style="width:100%;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s;text-align:left;">💀 Boss Mode: OFF</button>
@@ -548,8 +823,10 @@
 
   <!-- SHORTCUTS -->
   <div class="page" id="shortcuts">
-    <h2>Shortcuts</h2>
-    <p class="page-sub">Keyboard shortcuts that work anywhere.</p>
+    <div class="page-header">
+      <h2>Shortcuts</h2>
+      <p class="page-sub">Keyboard shortcuts that work anywhere.</p>
+    </div>
     <div class="shortcut-row">
       <div class="shortcut-desc">Pause PawBack<small>Uses the pause duration set in Settings</small></div>
       <div class="kbd"><span class="key">Ctrl</span><span class="key">Shift</span><span class="key">P</span></div>
@@ -566,22 +843,23 @@
       <div class="shortcut-desc">Open Daily Quests<small>See your quests, XP, and level</small></div>
       <div class="kbd"><span class="key">Ctrl</span><span class="key">Shift</span><span class="key">Q</span></div>
     </div>
-    <p class="page-sub" style="margin-top:24px;">Pet interactions.</p>
+    <p class="page-sub" style="margin-top:20px;margin-bottom:12px;">Pet interactions.</p>
     <div class="shortcut-row">
       <div class="shortcut-desc">Open dashboard<small>Left click the pet</small></div>
       <div class="kbd"><span class="key">🖱️ Left Click</span></div>
     </div>
     <div class="shortcut-row">
-      <div class="shortcut-desc">Move pet around screen<small>Right click + hold + drag, then release to drop</small></div>
-      <div class="kbd"><span class="key">🖱️ Right Click drag</span></div>
+      <div class="shortcut-desc">Move pet around screen<small>Right or middle click + hold + drag</small></div>
+      <div class="kbd"><span class="key">🖱️ Right/Middle drag</span></div>
     </div>
   </div>
 
-<!-- QUESTS -->
+  <!-- QUESTS -->
   <div class="page" id="quests">
-    <h2>Daily Quests</h2>
-    <p class="page-sub" id="questDateLabel">Loading...</p>
-
+    <div class="page-header">
+      <h2>Daily Quests</h2>
+      <p class="page-sub" id="questDateLabel">Loading...</p>
+    </div>
     <div class="xp-bar-wrap">
       <div class="xp-meta">
         <span id="dashLevelLabel">Level 1</span>
@@ -589,13 +867,11 @@
       </div>
       <div class="xp-bar"><div class="xp-fill" id="dashXpFill" style="width:0%"></div></div>
     </div>
-
     <div id="dashQuestsContainer">
       <div style="color:var(--muted);font-size:14px;">Loading quests...</div>
     </div>
-
-    <div style="font-size:12px;color:var(--muted);margin-top:16px;padding:12px 14px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border);">
-      🎯 Quests reset daily · +50 XP each · Quest XP levels up your cat
+    <div style="font-size:12px;color:var(--muted);margin-top:14px;padding:12px 14px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border);">
+      🎯 Quests reset daily · +50 XP each · Quest XP levels up your pet
     </div>
   </div>
 
@@ -612,7 +888,7 @@
     { file: 'dog.svg',   name: 'Dog'   },
   ];
 
-const FRIENDLY_NAMES = {
+  const FRIENDLY_NAMES = {
     'chrome': 'Google Chrome', 'opera': 'Opera', 'operagx': 'Opera GX',
     'firefox': 'Firefox', 'msedge': 'Microsoft Edge', 'Code': 'VS Code',
     'explorer': 'Windows Explorer', 'notepad': 'Notepad', 'Discord': 'Discord',
@@ -620,7 +896,7 @@ const FRIENDLY_NAMES = {
     'POWERPNT': 'PowerPoint', 'steam': 'Steam', 'WhatsApp': 'WhatsApp',
     'Telegram': 'Telegram', 'slack': 'Slack', 'Teams': 'Microsoft Teams',
   };
-  // ── State ──
+
   let selectedPet  = 'cat.svg';
   let selectedTone = 'sassy';
   let soundMuted   = false;
@@ -640,7 +916,7 @@ const FRIENDLY_NAMES = {
       tab.classList.add('active');
       setTimeout(() => document.getElementById(tab.dataset.page).classList.add('active'), 30);
       if (tab.dataset.page === 'stats')   { refreshStats(); loadPersona(); }
-      if (tab.dataset.page === 'history') { renderWeeklyChart(); renderHeatmap(); loadMoodLog(); }
+      if (tab.dataset.page === 'history') { renderWeeklyChart(); renderHeatmap(); renderGithubHeatmap(); loadMoodLog(); }
       if (tab.dataset.page === 'quests')  loadQuests();
     });
   });
@@ -686,18 +962,12 @@ const FRIENDLY_NAMES = {
     const btn = document.getElementById('muteBtn');
     if (btn) btn.textContent = soundMuted ? '🔈 Unmute sounds' : '🔇 Mute sounds';
   }
-  function toggleMute() {
-    soundMuted = !soundMuted;
-    syncMuteUI();
-    save();
-  }
+  function toggleMute() { soundMuted = !soundMuted; syncMuteUI(); save(); }
   window.pawback.onMuteChanged(v => { soundMuted = v; syncMuteUI(); });
 
   // ── Allowed apps ──
-  async function loadProcs() {
-    allProcs = await window.pawback.getRunningProcesses();
-  }
-  
+  async function loadProcs() { allProcs = await window.pawback.getRunningProcesses(); }
+
   function renderTags() {
     const list = document.getElementById('tagList');
     list.innerHTML = '';
@@ -740,7 +1010,7 @@ const FRIENDLY_NAMES = {
     blockedApps.forEach(a => {
       const tag = document.createElement('div');
       tag.className = 'tag';
-      tag.style.cssText = 'background:rgba(255,95,95,0.1);border-color:rgba(255,95,95,0.3);color:#ff5f5f;';
+      tag.style.cssText = 'background:rgba(255,107,107,0.1);border-color:rgba(255,107,107,0.3);color:var(--coral);';
       tag.innerHTML = `${friendly(a)} <span class="remove">×</span>`;
       tag.querySelector('.remove').addEventListener('click', () => { blockedApps = blockedApps.filter(x => x !== a); renderBlockedTags(); });
       list.appendChild(tag);
@@ -778,23 +1048,25 @@ const FRIENDLY_NAMES = {
   });
 
   // ── Stats ──
-  async function refreshStats() {
-    const stats = await window.pawback.getSessionStats();
-    const s     = await window.pawback.getSettings();
-
+  function applyStats(stats) {
+    const goal = window._cachedGoal || 60;
     document.getElementById('statPounce').textContent  = stats.pounceCount;
     document.getElementById('statBreaks').textContent  = stats.breaksTaken;
     document.getElementById('statMinutes').textContent = stats.sessionMinutes + ' min';
-    document.getElementById('statFocus').textContent   = stats.focusMinutes + ' min';
-    document.getElementById('statStreak').textContent  = (s.streak || 0) + ' day' + (s.streak === 1 ? '' : 's');
+    document.getElementById('statFocus').textContent   = stats.focusMinutes   + ' min';
 
-    const goal = s.dailyGoalMin || 60;
-    const pct  = Math.min(100, Math.round((stats.focusMinutes / goal) * 100));
+    const pct = Math.min(100, Math.round((stats.focusMinutes / goal) * 100));
     document.getElementById('goalProgressText').textContent = `${stats.focusMinutes} / ${goal} min`;
-    document.getElementById('goalBar').style.width = pct + '%';
+    document.getElementById('goalPct').textContent          = pct + '%';
+    document.getElementById('goalBar').style.width          = pct + '%';
 
-    const focusDelta      = stats.focusMinutes   - lastFocus;
-    const sessionDelta    = stats.sessionMinutes  - lastSession;
+    const ring  = document.getElementById('focusRingFill');
+    const pctEl = document.getElementById('focusRingPct');
+    if (ring)  ring.style.strokeDashoffset = 377 - (377 * pct / 100);
+    if (pctEl) pctEl.textContent = pct + '%';
+
+    const focusDelta      = stats.focusMinutes  - lastFocus;
+    const sessionDelta    = stats.sessionMinutes - lastSession;
     const distractedDelta = Math.max(0, sessionDelta - focusDelta);
     if (sessionDelta > 0) {
       snapshots.push({ focus: focusDelta, distracted: distractedDelta });
@@ -803,6 +1075,14 @@ const FRIENDLY_NAMES = {
     lastFocus   = stats.focusMinutes;
     lastSession = stats.sessionMinutes;
     renderGraph();
+  }
+
+  async function refreshStats() {
+    const stats = await window.pawback.getSessionStats();
+    const s     = await window.pawback.getSettings();
+    window._cachedGoal = s.dailyGoalMin || 60;
+    document.getElementById('statStreak').textContent = (s.streak || 0) + ' day' + (s.streak === 1 ? '' : 's');
+    applyStats(stats);
   }
 
   function renderGraph() {
@@ -856,12 +1136,64 @@ const FRIENDLY_NAMES = {
     document.getElementById('weekSummary').textContent = `${totalFocus} min focused · ${totalPounces} times caught this week`;
   }
 
+  // ── GitHub heatmap ──
+  async function renderGithubHeatmap() {
+    const s       = await window.pawback.getSettings();
+    const history = s.weeklyHistory || {};
+    const grid    = document.getElementById('heatmapGithub');
+    const monthRow = document.getElementById('heatmapMonthRow');
+    if (!grid) return;
+
+    // Build 70 days (10 weeks), starting from Monday
+    const today = new Date();
+    const dow   = today.getDay(); // 0=Sun
+    // find most recent Sunday
+    const daysBack = (dow + 0) % 7;
+    const end = new Date(today);
+    end.setHours(0,0,0,0);
+
+    // build array of 70 days, oldest first, padded so col 0 = 10 weeks ago Monday
+    const cells = [];
+    for (let i = 69; i >= 0; i--) {
+      const d   = new Date(end);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const fm  = history[key]?.focusMinutes || 0;
+      cells.push({ date: key, fm, label: d.toLocaleDateString('en', { month: 'short', day: 'numeric' }) });
+    }
+
+    // intensity levels
+    const maxFm = Math.max(...cells.map(c => c.fm), 1);
+    grid.innerHTML = cells.map(c => {
+      let level = 0;
+      if (c.fm > 0) {
+        const ratio = c.fm / maxFm;
+        level = ratio > 0.75 ? 4 : ratio > 0.5 ? 3 : ratio > 0.25 ? 2 : 1;
+      }
+      return `<div class="hm-cell level-${level}" title="${c.label}: ${c.fm} min focused"></div>`;
+    }).join('');
+
+    // month labels — figure out which columns are month starts
+    const monthsShown = new Set();
+    let monthHtml = '';
+    cells.forEach((c, i) => {
+      const col   = Math.floor(i / 7);
+      const month = c.date.slice(0, 7);
+      if (!monthsShown.has(month) && i % 7 === 0) {
+        monthsShown.add(month);
+        const label = new Date(c.date).toLocaleDateString('en', { month: 'short' });
+        monthHtml += `<span class="hm-month-label" style="width:${16}px;">${label}</span>`;
+      } else if (i % 7 === 0) {
+        monthHtml += `<span class="hm-month-label" style="width:16px;"></span>`;
+      }
+    });
+    if (monthRow) monthRow.innerHTML = monthHtml;
+  }
+
   // ── Save ──
   function save() {
     const s = {
-      allowedApps,
-      blockedApps,
-      appNameMap: nameMap,
+      allowedApps, blockedApps, appNameMap: nameMap,
       pet:              selectedPet,
       breakDurationMin: Number(document.getElementById('breakDurationMin').value),
       pauseDurationMin: Number(document.getElementById('pauseDurationMin').value),
@@ -869,10 +1201,9 @@ const FRIENDLY_NAMES = {
       pomodoroWorkMin:  Number(document.getElementById('pomWork').value  || 25),
       pomodoroBreakMin: Number(document.getElementById('pomBreak').value || 5),
       pounceTone:       selectedTone,
-      soundMuted,
-      bossMode,
-      streak:           window._streak          || 0,
-      lastActiveDate:   window._lastActiveDate  || '',
+      soundMuted, bossMode,
+      streak:         window._streak         || 0,
+      lastActiveDate: window._lastActiveDate || '',
     };
     window.pawback.saveSettings(s);
     const toast = document.getElementById('savedToast');
@@ -885,9 +1216,9 @@ const FRIENDLY_NAMES = {
     const bar = document.getElementById('petHealthBar');
     const txt = document.getElementById('petHealthText');
     if (!bar || !txt) return;
-    bar.style.width = v + '%';
-    bar.style.background = v > 60 ? '#5cdb95' : v > 30 ? 'var(--amber)' : 'var(--coral)';
-    txt.textContent = v > 60 ? `Thriving (${v})` : v > 30 ? `Getting tired (${v})` : `Not doing great (${v}) 😿`;
+    bar.style.width      = v + '%';
+    bar.style.background = v > 60 ? 'linear-gradient(90deg,#16a34a,var(--green))' : v > 30 ? 'linear-gradient(90deg,var(--amber-dim),var(--amber))' : 'linear-gradient(90deg,#991b1b,var(--coral))';
+    txt.textContent      = v > 60 ? `Thriving (${v})` : v > 30 ? `Getting tired (${v})` : `Not doing great (${v}) 😿`;
   }
 
   // ── Load ──
@@ -896,11 +1227,11 @@ const FRIENDLY_NAMES = {
     allowedApps  = [...(s.allowedApps  || [])];
     blockedApps  = [...(s.blockedApps  || [])];
     nameMap      = { ...(s.appNameMap  || {}) };
-    selectedPet  = s.pet         || 'cat.svg';
-    selectedTone = s.pounceTone  || 'sassy';
-    soundMuted   = s.soundMuted  || false;
-    window._streak         = s.streak         || 0;
-    window._lastActiveDate = s.lastActiveDate  || '';
+    selectedPet  = s.pet        || 'cat.svg';
+    selectedTone = s.pounceTone || 'sassy';
+    soundMuted   = s.soundMuted || false;
+    window._streak         = s.streak        || 0;
+    window._lastActiveDate = s.lastActiveDate || '';
 
     document.getElementById('breakDurationMin').value = s.breakDurationMin || 10;
     document.getElementById('pauseDurationMin').value = s.pauseDurationMin || 60;
@@ -923,11 +1254,19 @@ const FRIENDLY_NAMES = {
     await loadQuests();
     await loadTimeline();
     await loadMoodLog();
-    await loadPersona();;
+    await loadFocusDna();
+    await loadPersona();
+    await refreshReplay();
+    await loadAppHeatmap();
+    await loadContract();
+    renderContractRate();
   }
 
   setInterval(refreshStats, 30000);
-
+  setInterval(refreshReplay, 60000);
+  window.pawback.onStatsUpdate(stats => applyStats(stats));
+  window.pawback.onContractUpdate(data => renderContract(data));
+  
   // ── Pomodoro ──
   function startPom() {
     const w = Number(document.getElementById('pomWork').value)  || 25;
@@ -955,16 +1294,14 @@ const FRIENDLY_NAMES = {
   function syncBossUI() {
     const btn = document.getElementById('bossModeBtn');
     if (!btn) return;
-    btn.textContent        = bossMode ? '😤 Boss Mode: ON' : '💀 Boss Mode: OFF';
-    btn.style.borderColor  = bossMode ? 'var(--coral)' : 'var(--border)';
-    btn.style.color        = bossMode ? 'var(--coral)' : 'var(--text)';
+    btn.textContent       = bossMode ? '😤 Boss Mode: ON' : '💀 Boss Mode: OFF';
+    btn.style.borderColor = bossMode ? 'var(--coral)' : 'var(--border)';
+    btn.style.color       = bossMode ? 'var(--coral)' : 'var(--text)';
   }
-  function toggleBoss() {
-    window.pawback.toggleBossMode();
-  }
+  function toggleBoss() { window.pawback.toggleBossMode(); }
   window.pawback.onBossModeChanged(v => { bossMode = v; syncBossUI(); });
 
-  // ── Wire all buttons (no inline onclick) ──
+  // ── Buttons ──
   document.getElementById('startBtn').addEventListener('click',    goToSettings);
   document.getElementById('muteBtn').addEventListener('click',     toggleMute);
   document.getElementById('saveBtn').addEventListener('click',     save);
@@ -1029,35 +1366,31 @@ const FRIENDLY_NAMES = {
   });
   window.pawback.onQuestUpdate(data => renderDashQuests(data));
 
-  // ── Focus Replay heatmap ──
+  // ── Focus Replay ──
   function renderHeatmap() {
     const grid = document.getElementById('heatmapGrid');
     if (!grid) return;
     const timeline = window._focusTimeline || [];
     if (!timeline.length) {
-      grid.style.display = 'block';
-      grid.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:4px 0;">No data yet — check back after a few minutes of use.</div>';
+      grid.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:4px 0;">No data yet — check back after a few minutes.</div>';
       return;
     }
-    grid.style.display = '';
-    grid.innerHTML = timeline.map((cell, i) => {
-      const title = `Min ${i + 1}: ${cell}`;
-      return `<div class="hm-cell ${cell}" title="${title}"></div>`;
-    }).join('');
+    grid.innerHTML = timeline.map((cell, i) =>
+      `<div class="replay-cell ${cell}" title="Min ${i + 1}: ${cell}"></div>`
+    ).join('');
   }
 
   // ── Mood log ──
   function renderMoodTimeline(log) {
     const el = document.getElementById('moodTimeline');
     if (!el) return;
-    if (!log || !log.length) return;
+    if (!log || !log.length) {
+      el.innerHTML = '<div style="font-size:12px;color:var(--muted);">No mood check-ins yet — they happen every 30 min of focus.</div>';
+      return;
+    }
     el.innerHTML = log.map(entry => `
-      <div title="${entry.time}" style="
-        display:flex;flex-direction:column;align-items:center;gap:2px;
-        background:var(--surface2);border-radius:8px;padding:6px 8px;
-        font-size:10px;color:var(--muted);
-      ">
-        <span style="font-size:20px;">${entry.mood}</span>
+      <div class="mood-chip">
+        <span class="emoji">${entry.mood}</span>
         <span>${entry.time}</span>
       </div>
     `).join('');
@@ -1067,14 +1400,68 @@ const FRIENDLY_NAMES = {
     renderMoodTimeline(log);
   }
   window.pawback.onMoodUpdate(data => renderMoodTimeline(data));
+  async function loadFocusDna() {
+    const dna = await window.pawback.getFocusDna();
+    const el  = document.getElementById('focusDnaWrap');
+    if (!el) return;
+    if (!dna) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px;">Keep using PawBack — your Focus DNA builds after a few sessions.</div>';
+      return;
+    }
 
+    const insights = [];
+
+    // Danger hour
+    const dangerHour = dna.avgHourlyPounces.indexOf(Math.max(...dna.avgHourlyPounces));
+    if (Math.max(...dna.avgHourlyPounces) >= 1) {
+      const h = dangerHour;
+      const label = `${h > 12 ? h - 12 : h === 0 ? 12 : h}${h >= 12 ? 'pm' : 'am'}`;
+      insights.push({ emoji: '⚠️', title: 'Danger Hour', desc: `You drift most around ${label} — PawBack will warn you before it hits` });
+    }
+
+    // Collapse point
+    if (dna.avgCollapseAt) {
+      insights.push({ emoji: '🧠', title: 'Focus Ceiling', desc: `You historically lose focus around ${dna.avgCollapseAt} min into a session — PawBack nudges you before that point` });
+    }
+
+    // Worst day
+    if (dna.worstDow !== null && dna.worstAvg >= 1.5) {
+      const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dna.worstDow];
+      insights.push({ emoji: '📅', title: 'Weak Day', desc: `${dayName}s are your most distracted day — PawBack adjusts on ${dayName}s` });
+    }
+
+    // Peak focus hour
+    const peakHour = dna.avgHourlyFocus.indexOf(Math.max(...dna.avgHourlyFocus));
+    if (Math.max(...dna.avgHourlyFocus) >= 1) {
+      const h = peakHour;
+      const label = `${h > 12 ? h - 12 : h === 0 ? 12 : h}${h >= 12 ? 'pm' : 'am'}`;
+      insights.push({ emoji: '🔥', title: 'Peak Hour', desc: `You lock in hardest around ${label} — protect that window` });
+    }
+
+    if (!insights.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px;">Keep using PawBack — your Focus DNA builds after a few sessions.</div>';
+      return;
+    }
+
+    el.innerHTML = insights.map(i => `
+      <div class="persona-card">
+        <div class="persona-emoji">${i.emoji}</div>
+        <div>
+          <div class="persona-label">${i.title}</div>
+          <div class="persona-desc">${i.desc}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  
   // ── Persona ──
   async function loadPersona() {
     const data = await window.pawback.getPersona();
     const wrap = document.getElementById('personaWrap');
     if (!wrap) return;
     if (!data || !data.traits || !data.traits.length) {
-      wrap.innerHTML = '<div class="persona-empty">Keep using PawBack — your focus persona builds up over time 🐾</div>';
+      wrap.innerHTML = '<div class="persona-empty" style="grid-column:1/-1;">Keep using PawBack — your focus persona builds up over time 🐾</div>';
       return;
     }
     wrap.innerHTML = data.traits.map(t => `
@@ -1090,6 +1477,106 @@ const FRIENDLY_NAMES = {
 
   // ── Init ──
   load();
+// ── Pounce Replay ──
+  async function refreshReplay() {
+    const replay = await window.pawback.getReplay();
+    const grid   = document.getElementById('replayGrid');
+    if (!grid) return;
+    if (!replay || !replay.length) {
+      grid.innerHTML = '<div style="color:var(--muted);font-size:12px;">No data yet — check back after a few minutes.</div>';
+      return;
+    }
+    const colors = { focused: '#5cdb95', pounced: '#ff5f5f', 'on-break': '#4fc3f7', idle: '#2a2a2a' };
+    grid.innerHTML = replay.map((cell, i) =>
+      `<div title="Min ${i+1}: ${cell}" style="width:12px;height:12px;border-radius:2px;background:${colors[cell] || '#2a2a2a'};cursor:default;"></div>`
+    ).join('');
+
+    // Ghost chart — compare today vs yesterday
+    const ghost  = await window.pawback.getGhost();
+    const chart  = document.getElementById('ghostChart');
+    if (!chart) return;
+    const today = ghost.sessionReplay   || [];
+    const yest  = ghost.ghostTimeline   || [];
+    const len   = Math.max(today.length, yest.length, 1);
+    chart.innerHTML = Array.from({ length: Math.min(len, 60) }).map((_, i) => {
+      const tCell = today[i];
+      const yCell = yest[i];
+      const tH = tCell === 'focused' ? 40 : tCell === 'pounced' ? 20 : tCell === 'on-break' ? 30 : 5;
+      const yH = yCell === 'focused' ? 40 : yCell === 'pounced' ? 20 : yCell === 'on-break' ? 30 : 5;
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;flex:1;">
+        <div style="width:100%;background:${tCell === 'focused' ? '#5cdb95' : tCell === 'pounced' ? '#ff5f5f' : '#333'};height:${tH}px;border-radius:2px;"></div>
+        <div style="width:100%;background:${yCell ? '#555' : 'transparent'};height:${yH > 0 ? 3 : 0}px;border-radius:1px;opacity:0.5;"></div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── App Heatmap ──
+  async function loadAppHeatmap() {
+    const data = await window.pawback.getAppHeatmap();
+    const wrap = document.getElementById('appHeatmapWrap');
+    if (!wrap) return;
+    if (!data || !data.length) {
+      wrap.innerHTML = '<div style="color:var(--muted);font-size:12px;">No pounce data yet.</div>';
+      return;
+    }
+    const max = data[0].count;
+    wrap.innerHTML = data.map(({ app, count }) => `
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:90px;font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${app}</div>
+        <div style="flex:1;background:#1a1a1a;border-radius:4px;height:8px;">
+          <div style="width:${Math.round((count/max)*100)}%;background:var(--coral);height:8px;border-radius:4px;transition:width 0.4s;"></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);width:24px;text-align:right;">${count}x</div>
+      </div>
+    `).join('');
+  }
+
+  // ── Focus Contracts ──
+  async function loadContract() {
+    const contract = await window.pawback.getContract();
+    renderContract(contract);
+  }
+
+  function renderContract(contract) {
+    const form   = document.getElementById('contractForm');
+    const active = document.getElementById('contractActive');
+    const status = document.getElementById('contractStatus');
+    const rate   = document.getElementById('contractRate');
+    if (!form || !active) return;
+    if (!contract) {
+      form.style.display   = 'block';
+      active.style.display = 'none';
+      status.textContent   = 'Commit to a task and a time. Breaking it shows on your report card.';
+    } else {
+      form.style.display   = 'none';
+      active.style.display = 'block';
+      document.getElementById('contractTask').textContent     = `"${contract.task}"`;
+      document.getElementById('contractProgress').textContent = `${contract.elapsed} / ${contract.minutes} min${contract.broken ? ' — ⚠️ CONTRACT BROKEN' : contract.done ? ' — ✅ Done!' : ''}`;
+    }
+  }
+
+  function renderContractRate() {
+    window.pawback.getSettings().then(s => {
+      const total = s.contractsTotal || 0;
+      const kept  = s.contractsKept  || 0;
+      const el    = document.getElementById('contractRate');
+      if (el && total > 0) el.textContent = `${kept}/${total} contracts kept`;
+    });
+  }
+
+  function submitContract() {
+    const task = document.getElementById('contractTaskInput').value.trim();
+    const mins = Number(document.getElementById('contractMins').value) || 60;
+    if (!task) return;
+    window.pawback.startContract(task, mins);
+    renderContract({ task, minutes: mins, elapsed: 0, done: false, broken: false });
+  }
+
+  function endContract() {
+    window.pawback.endContract();
+    renderContract(null);
+    renderContractRate();
+  }
 </script>
 </body>
 </html>

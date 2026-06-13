@@ -315,6 +315,17 @@
             el.textContent = n;
           }
         }, 1000);
+      } else if (type === 'intervention') {
+        content.innerHTML = `
+          ${img}
+          <div class="message" style="font-size:24px;font-weight:700;margin-top:16px;">hey. something's off.</div>
+          <div class="sub-message" style="margin-top:8px;max-width:400px;line-height:1.6;color:#aaa;">you don't have to work right now.<br>what's actually going on?</div>
+          <div class="btn-row" style="margin-top:28px;flex-direction:column;gap:10px;align-items:center;">
+            <button class="btn btn-no" style="width:260px;" onclick="window.pawback.interventionResponse('overwhelmed')">😵 I'm overwhelmed</button>
+            <button class="btn btn-no" style="width:260px;" onclick="window.pawback.interventionResponse('tired')">😴 I'm just tired</button>
+            <button class="btn btn-yes" style="width:260px;" onclick="window.pawback.interventionResponse('lockin')">🔒 I'm good — lock me in</button>
+          </div>
+        `;
 
       } else if (type === 'lockin') {
         content.innerHTML = `

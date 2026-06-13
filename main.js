@@ -266,7 +266,7 @@ async function generateDailyQuests() {
         },
         {
           role: 'user',
-          content: `Generate 3 varied daily focus quests. Make them achievable but slightly challenging. For focus_minutes use targets between 20-60. For stay_under_pounces use targets between 2-5.`
+          content: `Generate 3 varied daily focus quests. Make them achievable but slightly challenging. For focus_minutes use targets between 20-60. For stay_under_pounces use targets between 2-5.${(settings.debtMinutes || 0) > 10 ? ' The user has carried over screen time debt so make focus_minutes targets 10-15 minutes harder than usual.' : ''}`
         }
       ],
     });
@@ -292,8 +292,8 @@ function updateQuestProgress() {
     let newProgress = q.progress;
 
     if      (q.type === 'focus_minutes')      newProgress = (((settings.weeklyHistory || {})[todayKey()] || {}).focusMinutes || 0) + Math.floor(focusSeconds / 60);
-    else if (q.type === 'stay_under_pounces') newProgress = pounceCount;
-    else if (q.type === 'no_break_streak')    newProgress = breaksTaken;
+    else if (q.type === 'stay_under_pounces') newProgress = (((settings.weeklyHistory || {})[todayKey()] || {}).pounceCount || 0) + pounceCount;
+    else if (q.type === 'no_break_streak')    newProgress = (((settings.weeklyHistory || {})[todayKey()] || {}).breaksTaken || 0) + breaksTaken;
 
     if (newProgress !== q.progress) { q.progress = newProgress; changed = true; }
 
@@ -346,6 +346,17 @@ function awardQuestXP(quest) {
   if (peekWindow && !peekWindow.isDestroyed()) peekWindow.webContents.send('show-bubble', msg);
   broadcastQuestUpdate();
 }
+function broadcastStats() {
+  if (!dashboardWindow || dashboardWindow.isDestroyed()) return;
+  const key   = todayKey();
+  const saved = (settings.weeklyHistory || {})[key] || { focusMinutes: 0, pounceCount: 0, breaksTaken: 0 };
+  dashboardWindow.webContents.send('stats-update', {
+    pounceCount:    saved.pounceCount  + pounceCount,
+    breaksTaken:    saved.breaksTaken  + breaksTaken,
+    sessionMinutes: Math.floor((Date.now() - sessionStart) / 60000),
+    focusMinutes:   saved.focusMinutes + Math.floor(focusSeconds / 60),
+  });
+}
 
 function broadcastQuestUpdate() {
   const payload = { quests: settings.quests, totalXP: settings.totalXP, level: settings.level };
@@ -381,6 +392,21 @@ let hourlyPounces = new Array(24).fill(0); // pounces per hour of day
 let pounceTimestamps = []; // ms timestamps of each pounce this session
 let focusTimeline = []; // one entry per minute: 'focused' | 'pounced' | 'on-break' | 'idle'
 let timelineMinuteCounter = 0;
+let debtMinutes = 0;
+let paybackActive = false;
+let paybackEndsAt = null;
+let paybackSeconds = 0;
+// Focus Contracts
+let activeContract = null; // { task, minutes, startedAt }
+// Ghost Mode
+let ghostTimeline = []; // yesterday's focus timeline loaded on startup
+// App Heatmap — track which apps triggered pounces
+let appPounceLog = {}; // { appName: count }
+// Intervention Mode
+let recentPounceWindow = []; // timestamps of recent pounces for spiral detection
+let interventionFired = false;
+// Pounce Replay — per-session minute log
+let sessionReplay = []; // one entry per minute: 'focused'|'pounced'|'break'|'idle'
 
 if (settings.petHealth === undefined) settings.petHealth = 70;
 if (settings.totalXP   === undefined) settings.totalXP   = 0;
@@ -582,9 +608,33 @@ function tick() {
     else if (awaitingResponse)                          cell = 'pounced';
     else if (settings.allowedApps.includes(appName))   cell = 'focused';
     focusTimeline.push(cell);
+    sessionReplay.push(cell);
     if (focusTimeline.length > 480) focusTimeline.shift(); // max 8 hours
     if (dashboardWindow && !dashboardWindow.isDestroyed())
       dashboardWindow.webContents.send('timeline-update', focusTimeline);
+  }
+
+  // Payback sprint
+  if (paybackActive) {
+    if (Date.now() >= paybackEndsAt) {
+      paybackActive = false;
+      const carried = settings.debtMinutes || 0;
+      settings.debtMinutes = 0;
+      settings.totalXP = (settings.totalXP || 0) + 30;
+      saveSettings(settings);
+      broadcastQuestUpdate();
+      adjustHealth(10);
+      if (peekWindow && !peekWindow.isDestroyed())
+        peekWindow.webContents.send('show-bubble', '✅ Debt cleared! Clean slate. +30 XP 🐾');
+      if (dashboardWindow && !dashboardWindow.isDestroyed())
+        dashboardWindow.webContents.send('debt-update', { debtMinutes: 0, paybackActive: false, secondsLeft: 0 });
+    } else {
+      paybackSeconds = Math.max(0, Math.floor((paybackEndsAt - Date.now()) / 1000));
+      if (dashboardWindow && !dashboardWindow.isDestroyed())
+        dashboardWindow.webContents.send('debt-update', { debtMinutes: settings.debtMinutes || 0, paybackActive: true, secondsLeft: paybackSeconds });
+    }
+    hidePounce();
+    return;
   }
 
   if (!appName) return;
@@ -630,9 +680,16 @@ function tick() {
     lastBlockedPounce = true;
     pounceCount++;
     adjustHealth(-10);
-    flushStatsToHistory();
     hourlyPounces[new Date().getHours()]++;
     pounceTimestamps.push(Date.now());
+    debtMinutes++;
+    appPounceLog[appName] = (appPounceLog[appName] || 0) + 1;
+    recentPounceWindow.push(Date.now());
+    recentPounceWindow = recentPounceWindow.filter(t => Date.now() - t < 20 * 60 * 1000);
+    broadcastStats();
+    updateQuestProgress();
+    flushStatsToHistory();
+    checkIntervention();
     playSound('pounce.wav');
     if (peekWindow && !peekWindow.isDestroyed()) peekWindow.webContents.send('pre-pounce');
 
@@ -651,7 +708,7 @@ function tick() {
     if (!internalApps.includes(appName) && !isAppSnoozed(appName)) {
       focusSeconds++;
       healthFocusCounter++;
-      if (focusSeconds % 60 === 0) hourlyFocus[new Date().getHours()]++;
+      if (focusSeconds % 60 === 0) { hourlyFocus[new Date().getHours()]++; broadcastStats(); }
       if (healthFocusCounter >= 60) {
         healthFocusCounter = 0;
         adjustHealth(2);
@@ -671,9 +728,16 @@ function tick() {
     awaitingResponse = true;
     pounceCount++;
     adjustHealth(-6);
-    flushStatsToHistory();
     hourlyPounces[new Date().getHours()]++;
     pounceTimestamps.push(Date.now());
+    debtMinutes++;
+    appPounceLog[appName] = (appPounceLog[appName] || 0) + 1;
+    recentPounceWindow.push(Date.now());
+    recentPounceWindow = recentPounceWindow.filter(t => Date.now() - t < 20 * 60 * 1000);
+    broadcastStats();
+    updateQuestProgress();
+    flushStatsToHistory();
+    checkIntervention();
     playSound('pounce.wav');
     if (peekWindow && !peekWindow.isDestroyed()) peekWindow.webContents.send('pre-pounce');
 
@@ -719,6 +783,8 @@ function startBreak() {
   breaksTaken++;
   awaitingResponse = false;
   hidePounce();
+  broadcastStats();
+  updateQuestProgress();
   flushStatsToHistory();
 }
 
@@ -885,6 +951,65 @@ ipcMain.on('open-questboard',    () => createQuestboardWindow());
 ipcMain.handle('get-quests',     () => ({ quests: settings.quests, totalXP: settings.totalXP, level: settings.level }));
 ipcMain.handle('get-timeline',   () => focusTimeline);
 ipcMain.handle('get-persona',    () => computePersona());
+ipcMain.handle('get-focus-dna',    () => getFocusDna());
+ipcMain.handle('get-app-heatmap',  () => computeAppHeatmap());
+ipcMain.handle('get-contract',     () => getContractStatus());
+ipcMain.handle('get-ghost',        () => ({ ghostTimeline, sessionReplay }));
+ipcMain.handle('get-replay',       () => sessionReplay);
+ipcMain.on('start-contract', (event, { task, minutes }) => startContract(task, minutes));
+ipcMain.on('end-contract',   () => {
+  if (!activeContract) return;
+  const status = getContractStatus();
+  activeContract = null;
+  settings.contractsTotal    = (settings.contractsTotal    || 0) + 1;
+  settings.contractsKept     = (settings.contractsKept     || 0) + (status.done && !status.broken ? 1 : 0);
+  saveSettings(settings);
+  if (dashboardWindow && !dashboardWindow.isDestroyed())
+    dashboardWindow.webContents.send('contract-update', null);
+});
+ipcMain.on('intervention-response', (event, choice) => {
+  interventionFired = false;
+  if (choice === 'overwhelmed') {
+    startBreak();
+    if (peekWindow && !peekWindow.isDestroyed())
+      peekWindow.webContents.send('show-bubble', `take a breath. come back when you're ready 🐾`);
+  } else if (choice === 'tired') {
+    startBreak();
+    if (peekWindow && !peekWindow.isDestroyed())
+      peekWindow.webContents.send('show-bubble', `rest up. we go again after ☕`);
+  } else {
+    awaitingResponse = false;
+    hidePounce();
+    if (peekWindow && !peekWindow.isDestroyed())
+      peekWindow.webContents.send('show-bubble', `let's go. locked in 🔒`);
+  }
+});
+ipcMain.handle('get-debt', () => ({
+  debtMinutes:   (settings.debtMinutes || 0) + debtMinutes,
+  paybackActive,
+  secondsLeft:   paybackActive ? Math.max(0, Math.floor((paybackEndsAt - Date.now()) / 1000)) : 0,
+}));
+ipcMain.on('start-payback', () => {
+  const total = (settings.debtMinutes || 0) + debtMinutes;
+  if (total <= 0) return;
+  paybackActive  = true;
+  paybackEndsAt  = Date.now() + total * 60 * 1000;
+  debtMinutes    = 0;
+  settings.debtMinutes = 0;
+  saveSettings(settings);
+  if (peekWindow && !peekWindow.isDestroyed())
+    peekWindow.webContents.send('show-bubble', `🔒 Payback started — ${total} min. No escape.`);
+  if (dashboardWindow && !dashboardWindow.isDestroyed())
+    dashboardWindow.webContents.send('debt-update', { debtMinutes: total, paybackActive: true, secondsLeft: total * 60 });
+});
+ipcMain.on('skip-payback', () => {
+  const total = (settings.debtMinutes || 0) + debtMinutes;
+  settings.debtMinutes = total;
+  debtMinutes = 0;
+  saveSettings(settings);
+  if (peekWindow && !peekWindow.isDestroyed())
+    peekWindow.webContents.send('show-bubble', `😒 debt carried over. tomorrow's quests will be harder.`);
+});
 ipcMain.on('open-dashboard',    () => createDashboardWindow());
 
 ipcMain.on('save-peek-position', (event, { x, y }) => {
@@ -1043,6 +1168,167 @@ function computePersona() {
   return { traits: traits.slice(0, 4), weeklyTotal, activeDays };
 }
 
+// ── Focus DNA — predictive engine ──
+let focusDnaWarningFired = {};  // track which warnings fired today so they don't repeat
+
+function getFocusDna() {
+  const history = settings.weeklyHistory || {};
+  const days = Object.keys(history).sort().slice(-14);
+  if (days.length < 2) return null;
+
+  // Average pounces per hour across all history
+  const avgHourlyPounces = new Array(24).fill(0);
+  const avgHourlyFocus   = new Array(24).fill(0);
+  let dayCounts = 0;
+  days.forEach(d => {
+    const hp = history[d].hourlyPounces || [];
+    const hf = history[d].hourlyFocus   || [];
+    hp.forEach((v, i) => avgHourlyPounces[i] += v);
+    hf.forEach((v, i) => avgHourlyFocus[i]   += v);
+    dayCounts++;
+  });
+  if (dayCounts > 0) {
+    avgHourlyPounces.forEach((_, i) => avgHourlyPounces[i] /= dayCounts);
+    avgHourlyFocus.forEach((_,   i) => avgHourlyFocus[i]   /= dayCounts);
+  }
+
+  // Average session length before focus collapses (pounce after long focus)
+  const focusCollapseMinutes = [];
+  days.forEach(d => {
+    const fm = history[d].focusMinutes || 0;
+    const pc = history[d].pounceCount  || 0;
+    if (pc > 0 && fm > 0) focusCollapseMinutes.push(fm / pc);
+  });
+  const avgCollapseAt = focusCollapseMinutes.length
+    ? Math.round(focusCollapseMinutes.reduce((a, b) => a + b, 0) / focusCollapseMinutes.length)
+    : null;
+
+  // Worst day of week
+  const dowPounces = {};
+  days.forEach(d => {
+    const dow = new Date(d).getDay();
+    if (!dowPounces[dow]) dowPounces[dow] = { total: 0, count: 0 };
+    dowPounces[dow].total += history[d].pounceCount || 0;
+    dowPounces[dow].count++;
+  });
+  let worstDow = null, worstAvg = 0;
+  Object.entries(dowPounces).forEach(([dow, v]) => {
+    const avg = v.total / v.count;
+    if (avg > worstAvg) { worstAvg = avg; worstDow = Number(dow); }
+  });
+
+  return { avgHourlyPounces, avgHourlyFocus, avgCollapseAt, worstDow, worstAvg };
+}
+
+function runFocusDna() {
+  const dna = getFocusDna();
+  if (!dna) return;
+
+  const now      = new Date();
+  const hour     = now.getHours();
+  const todayDow = now.getDay();
+  const todayStr = todayKey();
+  const focusMin = Math.floor(focusSeconds / 60) + ((settings.weeklyHistory[todayStr] || {}).focusMinutes || 0);
+
+  // 1. Pre-emptive danger hour warning — if this hour is historically bad, warn at :55 of previous hour
+  const nextHour = (hour + 1) % 24;
+  const warningKey = `danger-${todayStr}-${nextHour}`;
+  if (
+    dna.avgHourlyPounces[nextHour] >= 1.5 &&
+    now.getMinutes() >= 55 &&
+    !focusDnaWarningFired[warningKey]
+  ) {
+    focusDnaWarningFired[warningKey] = true;
+    const label = `${nextHour > 12 ? nextHour - 12 : nextHour === 0 ? 12 : nextHour}${nextHour >= 12 ? 'pm' : 'am'}`;
+    if (peekWindow && !peekWindow.isDestroyed())
+      peekWindow.webContents.send('show-bubble', `⚠️ heads up — you usually drift around ${label}. stay locked.`);
+  }
+
+  // 2. Focus collapse warning — warn before they historically fall apart
+  if (dna.avgCollapseAt && !onBreak && !awaitingResponse) {
+    const collapseWarningKey = `collapse-${todayStr}-${Math.floor(focusMin / 5)}`;
+    if (
+      focusMin >= dna.avgCollapseAt - 3 &&
+      focusMin < dna.avgCollapseAt + 3 &&
+      !focusDnaWarningFired[collapseWarningKey]
+    ) {
+      focusDnaWarningFired[collapseWarningKey] = true;
+      if (peekWindow && !peekWindow.isDestroyed())
+        peekWindow.webContents.send('show-bubble', `🧠 you usually drift around now. push through — ${dna.avgCollapseAt + 5} min is your real target.`);
+    }
+  }
+
+  // 3. Worst day of week heads-up — fire once at session start on their worst day
+  const worstDayKey = `worstday-${todayStr}`;
+  if (
+    todayDow === dna.worstDow &&
+    dna.worstAvg >= 2 &&
+    !focusDnaWarningFired[worstDayKey] &&
+    Math.floor((Date.now() - sessionStart) / 60000) < 5
+  ) {
+    focusDnaWarningFired[worstDayKey] = true;
+    const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][todayDow];
+    if (peekWindow && !peekWindow.isDestroyed())
+      peekWindow.webContents.send('show-bubble', `👀 ${dayName}s are historically your worst day. prove it wrong.`);
+  }
+
+  // 4. Third pounce intervention — change tone entirely instead of roasting again
+  const tripleKey = `triple-${todayStr}`;
+  const totalPounces = ((settings.weeklyHistory[todayStr] || {}).pounceCount || 0) + pounceCount;
+  if (totalPounces === 3 && !focusDnaWarningFired[tripleKey] && awaitingResponse) {
+    focusDnaWarningFired[tripleKey] = true;
+    setTimeout(() => {
+      if (peekWindow && !peekWindow.isDestroyed())
+        peekWindow.webContents.send('show-bubble', `okay. let's reset. close everything. breathe. then we go again 🐾`);
+    }, 500);
+  }
+}
+  
+// ── Intervention Mode ──
+function checkIntervention() {
+  if (interventionFired) return;
+  if (recentPounceWindow.length >= 5) {
+    interventionFired = true;
+    setTimeout(() => {
+      showScreen('intervention');
+    }, 800);
+  }
+}
+
+// ── Focus Contracts ──
+function startContract(task, minutes) {
+  activeContract = { task, minutes, startedAt: Date.now() };
+  if (peekWindow && !peekWindow.isDestroyed())
+    peekWindow.webContents.send('show-bubble', `📝 Contract started — ${task} for ${minutes} min. Don't break it.`);
+  if (dashboardWindow && !dashboardWindow.isDestroyed())
+    dashboardWindow.webContents.send('contract-update', getContractStatus());
+}
+
+function getContractStatus() {
+  if (!activeContract) return null;
+  const elapsed = Math.floor((Date.now() - activeContract.startedAt) / 60000);
+  const done    = elapsed >= activeContract.minutes;
+  const todayPounces = ((settings.weeklyHistory[todayKey()] || {}).pounceCount || 0) + pounceCount;
+  const broken  = todayPounces > 3 && !done;
+  return { ...activeContract, elapsed, done, broken };
+}
+
+function computeAppHeatmap() {
+  const history = settings.weeklyHistory || {};
+  const combined = { ...appPounceLog };
+  // also fold in saved stray reasons from history (using app-level pounce log)
+  Object.values(history).forEach(day => {
+    if (day.appPounceLog) {
+      Object.entries(day.appPounceLog).forEach(([app, count]) => {
+        combined[app] = (combined[app] || 0) + count;
+      });
+    }
+  });
+  return Object.entries(combined)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([app, count]) => ({ app, count }));
+}
 
 function flushStatsToHistory() {
   const key = todayKey();
@@ -1051,13 +1337,19 @@ function flushStatsToHistory() {
   const existingHF = existing.hourlyFocus   || new Array(24).fill(0);
   const existingHP = existing.hourlyPounces || new Array(24).fill(0);
   const addedMinutes = Math.floor(focusSeconds / 60);
+  const existingLog = existing.appPounceLog || {};
+  Object.entries(appPounceLog).forEach(([app, count]) => {
+    existingLog[app] = (existingLog[app] || 0) + count;
+  });
   settings.weeklyHistory[key] = {
-    focusMinutes:  existing.focusMinutes + addedMinutes,
-    pounceCount:   existing.pounceCount  + pounceCount,
-    breaksTaken:   existing.breaksTaken  + breaksTaken,
-    reasons:       existing.reasons || {},
-    hourlyFocus:   existingHF.map((v, i) => v + hourlyFocus[i]),
-    hourlyPounces: existingHP.map((v, i) => v + hourlyPounces[i]),
+    focusMinutes:    existing.focusMinutes + addedMinutes,
+    pounceCount:     existing.pounceCount  + pounceCount,
+    breaksTaken:     existing.breaksTaken  + breaksTaken,
+    reasons:         existing.reasons || {},
+    hourlyFocus:     existingHF.map((v, i) => v + hourlyFocus[i]),
+    hourlyPounces:   existingHP.map((v, i) => v + hourlyPounces[i]),
+    appPounceLog:    existingLog,
+    replayTimeline:  sessionReplay,
   };
   focusSeconds -= addedMinutes * 60;
   pounceCount = 0;
@@ -1086,6 +1378,11 @@ app.whenReady().then(() => {
   setInterval(tick, 1000);
   setInterval(flushStatsToHistory, 5 * 60 * 1000);
   setInterval(updateQuestProgress, 10000);
+  setInterval(runFocusDna, 60 * 1000);
+
+  // Load yesterday's timeline for ghost mode
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  ghostTimeline = (settings.weeklyHistory[yesterday] || {}).replayTimeline || [];
   generateDailyQuests();
 
   // Save streak on startup so crashes don't wipe it
@@ -1136,12 +1433,17 @@ app.whenReady().then(() => {
 
     const key = todayKey();
     const saved = (settings.weeklyHistory || {})[key] || { focusMinutes: 0, pounceCount: 0, breaksTaken: 0 };
+    const totalDebt = (settings.debtMinutes || 0) + debtMinutes;
     sessionSnapshot = {
       pounceCount:    saved.pounceCount,
       breaksTaken:    saved.breaksTaken,
       sessionMinutes: Math.floor((Date.now() - sessionStart) / 60000),
       focusMinutes:   saved.focusMinutes,
+      debtMinutes:    totalDebt,
     };
+    // carry debt forward if not paid
+    settings.debtMinutes = totalDebt;
+    saveSettings(settings);
 
     checkEndOfDayQuests();
     recordDayHistory();
