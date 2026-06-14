@@ -297,8 +297,9 @@
     window.pawback.onMoodChange && window.pawback.onMoodChange(({ mood, health, debt }) => {
       setMood(mood || 'idle');
       if (health !== undefined) updateHealthBar(health);
-      if (debt && debt > 0) {
-        debtBadge.textContent = `-${debt} min`;
+      const debtNum = Number(debt) || 0;
+      if (debtNum > 0) {
+        debtBadge.textContent = `-${debtNum} min`;
         debtBadge.classList.add('show');
       } else {
         debtBadge.classList.remove('show');

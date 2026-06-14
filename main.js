@@ -430,11 +430,22 @@ function broadcastHealth() {
 let bossMode = settings.bossMode || false;
 
 // ── Pomodoro ──
-let pomodoroActive     = false;
-let pomodoroEndsAt     = null;
-let pomodoroBreakEndsAt = null;
-let pomodoroInBreak    = false;
-let pomodoroRound      = 0;
+let pomodoroActive         = false;
+let pomodoroEndsAt         = null;
+let pomodoroBreakEndsAt    = null;
+let pomodoroInBreak        = false;
+let pomodoroRound          = 0;
+let pomodoroPaused          = false;
+let pomodoroPausedTimeLeft  = 0;
+let pomodoroSessionEndFired = false;
+let pomodoroBreakEndFired   = false;
+let summaryShowing          = false;
+
+let generalActive          = false;
+let generalPaused          = false;
+let generalSessionStart    = null;
+let generalFocusSeconds    = 0;
+let generalPounceCount     = 0;
 
 function startPomodoro(workMin) {
   pomodoroActive   = true;
@@ -467,7 +478,7 @@ function snoozeApp(appName, minutes) {
 function playSound(file) {
   if (settings.soundMuted) return;
   const soundPath = path.join(__dirname, 'sounds', file);
-  exec(`powershell -c (New-Object Media.SoundPlayer '${soundPath}').PlaySync()`);
+  exec(`powershell -c (New-Object Media.SoundPlayer '${soundPath}').Play()`);
 }
 
 // ── Encouragement ──
@@ -542,12 +553,17 @@ function createDashboardWindow() {
   dashboardWindow.on('closed', () => { dashboardWindow = null; });
 }
 
+const SUMMARY_SCREENS = ['pomodoroSessionEnd', 'pomodoroFinalSummary', 'generalSessionEnd'];
+
 function showScreen(type, extra) {
+  if (summaryShowing && !SUMMARY_SCREENS.includes(type)) return;
   const msg = type === 'pounce' ? lastAiMessage : '';
   pounceWindow.webContents.send('set-screen', type, settings.pet, msg, extra || null);
-  if (!pounceWindow.isVisible()) pounceWindow.show();
-  pounceWindow.setAlwaysOnTop(true, 'screen-saver');
-  pounceWindow.focus();
+  if (!pounceWindow.isVisible()) {
+    pounceWindow.show();
+    pounceWindow.setAlwaysOnTop(true, 'screen-saver');
+    pounceWindow.focus();
+  }
   if (type === 'pounce') {
     if (peekWindow && !peekWindow.isDestroyed()) peekWindow.webContents.send('pounce-active', true);
   }
@@ -570,32 +586,51 @@ function updatePeekMood() {
 // ── Tick ──
 function tick() {
   if (inPomodoroCountdown) return;
+  if (summaryShowing) return;
   const appName = currentAppName;
   const now = Date.now();
 
+  
+  
   // Pomodoro ticking
-  if (pomodoroActive) {
+  if (pomodoroActive && !pomodoroPaused) {
     if (!pomodoroInBreak && pomodoroEndsAt) {
       const left = Math.max(0, Math.floor((pomodoroEndsAt - now) / 1000));
       broadcastPomodoro(left);
-      if (now >= pomodoroEndsAt) {
+      if (now >= pomodoroEndsAt && !pomodoroSessionEndFired) {
+        pomodoroSessionEndFired = true;
         pomodoroInBreak     = true;
-        pomodoroBreakEndsAt = Date.now() + (settings.pomodoroBreakMin || 5) * 60 * 1000;
+        pomodoroBreakEndsAt = null;
         playSound('lockin.wav');
+        summaryShowing = true;
+        showScreen('pomodoroSessionEnd', { round: pomodoroRound, breakMin: settings.pomodoroBreakMin || 5, workMin: settings.pomodoroWorkMin || 25, pounceCount });
         if (peekWindow && !peekWindow.isDestroyed())
           peekWindow.webContents.send('show-bubble', `Round ${pomodoroRound} done! 🍅 Break time!`);
+        if (dashboardWindow && !dashboardWindow.isDestroyed())
+          dashboardWindow.webContents.send('pomodoro-event', 'session-end');
       }
     } else if (pomodoroInBreak && pomodoroBreakEndsAt) {
       const left = Math.max(0, Math.floor((pomodoroBreakEndsAt - now) / 1000));
       broadcastPomodoro(left);
-      if (now >= pomodoroBreakEndsAt) {
+      if (now >= pomodoroBreakEndsAt && !pomodoroBreakEndFired) {
+        pomodoroBreakEndFired   = true;
+        pomodoroSessionEndFired = false;
         pomodoroInBreak = false;
         pomodoroRound++;
         pomodoroEndsAt  = Date.now() + (settings.pomodoroWorkMin || 25) * 60 * 1000;
         playSound('pounce.wav');
         broadcastMoodChange();
+        inPomodoroCountdown = true;
+        showScreen('pomodoroCountdown');
+        setTimeout(() => {
+          inPomodoroCountdown   = false;
+          pomodoroBreakEndFired = false;
+          hidePounce();
+        }, 4000);
         if (peekWindow && !peekWindow.isDestroyed())
           peekWindow.webContents.send('show-bubble', `🍅 Round ${pomodoroRound} — lock in!`);
+        if (dashboardWindow && !dashboardWindow.isDestroyed())
+          dashboardWindow.webContents.send('pomodoro-event', 'break-end');
       }
     }
   }
@@ -640,8 +675,20 @@ function tick() {
 
   if (!appName) return;
   
+  // General session tracking
+  if (generalActive && !generalPaused) {
+    const allowed = settings.allowedApps || [];
+    if (allowed.includes(currentAppName)) {
+      generalFocusSeconds++;
+    }
+  }
+
   if (isPaused) {
-    if (now >= pauseEndsAt) isPaused = false;
+    if (now >= pauseEndsAt) {
+      isPaused = false;
+      if (peekWindow && !peekWindow.isDestroyed())
+        peekWindow.webContents.send('mood-change', { mood: 'idle', health: petHealth, debt: 0 });
+    }
     else { hidePounce(); return; }
   }
 
@@ -680,6 +727,7 @@ function tick() {
    awaitingResponse  = true;
     lastBlockedPounce = true;
     pounceCount++;
+        if (generalActive) generalPounceCount++;
     adjustHealth(-10);
     hourlyPounces[new Date().getHours()]++;
     pounceTimestamps.push(Date.now());
@@ -758,6 +806,7 @@ function tick() {
 
 // ── IPC handlers ──
 ipcMain.on('pounce-done', () => {
+  if (summaryShowing) return;
   if (bossMode || lastBlockedPounce) {
     lastBlockedPounce = false;
     showScreen('bossPounce', { allowedApps: settings.allowedApps });
@@ -766,10 +815,10 @@ ipcMain.on('pounce-done', () => {
   }
 });
 
-ipcMain.on('break-offer-yes',   () => startBreak());
-ipcMain.on('break-offer-no',    () => showScreen('breakConfirm'));
-ipcMain.on('break-confirm-yes', () => startBreak());
-ipcMain.on('break-confirm-no',  () => { awaitingResponse = false; hidePounce(); });
+ipcMain.on('break-offer-yes',   () => { if (summaryShowing) return; startBreak(); });
+ipcMain.on('break-offer-no',    () => { if (summaryShowing) return; showScreen('breakConfirm'); });
+ipcMain.on('break-confirm-yes', () => { if (summaryShowing) return; startBreak(); });
+ipcMain.on('break-confirm-no',  () => { if (summaryShowing) return; awaitingResponse = false; hidePounce(); });
 
 ipcMain.on('log-stray-reason', (event, reason) => {
   strayReasons[reason] = (strayReasons[reason] || 0) + 1;
@@ -823,9 +872,11 @@ ipcMain.on('toggle-boss-mode', () => {
 ipcMain.handle('get-boss-mode', () => bossMode);
 
 ipcMain.on('pomodoro-start', (event, { workMin, breakMin }) => {
-  settings.pomodoroWorkMin  = workMin;
-  settings.pomodoroBreakMin = breakMin;
-  pomodoroRound = 0;
+  settings.pomodoroWorkMin    = workMin;
+  settings.pomodoroBreakMin   = breakMin;
+  pomodoroRound               = 0;
+  pomodoroSessionEndFired     = false;
+  pomodoroBreakEndFired       = false;
 
   inPomodoroCountdown = true;
   showScreen('pomodoroCountdown');
@@ -835,14 +886,109 @@ ipcMain.on('pomodoro-start', (event, { workMin, breakMin }) => {
     startPomodoro(workMin);
     const target = settings.allowedApps[0];
     if (target) switchToApp(target);
-  }, 3000);
+  }, 4000);
+});
+
+ipcMain.on('general-start', () => {
+  generalActive       = true;
+  generalPaused       = false;
+  generalSessionStart = Date.now();
+  generalFocusSeconds = 0;
+  generalPounceCount  = 0;
+  inPomodoroCountdown = true;
+  showScreen('pomodoroCountdown');
+  setTimeout(() => {
+    inPomodoroCountdown = false;
+    hidePounce();
+  }, 4000);
+});
+
+ipcMain.on('general-pause', () => {
+  generalPaused = true;
+});
+
+ipcMain.on('general-resume', () => {
+  generalPaused = false;
+});
+
+ipcMain.on('general-stop', () => {
+  if (!generalActive) return;
+  generalActive = false;
+  generalPaused = false;
+  const totalMin    = Math.floor((Date.now() - generalSessionStart) / 60000);
+  const focusMin    = Math.floor(generalFocusSeconds / 60);
+  const distractMin = Math.max(0, totalMin - focusMin);
+  summaryShowing = true;
+  showScreen('generalSessionEnd', {
+    totalMin,
+    focusMin,
+    distractMin,
+    pounceCount: generalPounceCount,
+  });
+});
+
+ipcMain.on('general-ack-end', () => {
+  summaryShowing = false;
+  hidePounce();
+});
+
+ipcMain.on('pomodoro-ack-session-end', () => {
+  summaryShowing = false;
+  hidePounce();
+  pomodoroBreakEndsAt = Date.now() + (settings.pomodoroBreakMin || 5) * 60 * 1000;
+});
+
+ipcMain.on('pomodoro-ack-final', () => {
+  summaryShowing = false;
+  hidePounce();
 });
 
 ipcMain.on('pomodoro-stop', () => {
-  pomodoroActive  = false;
-  pomodoroInBreak = false;
+  const roundsDone = pomodoroRound;
+  const totalFocusMin = roundsDone * (settings.pomodoroWorkMin || 25);
+  pomodoroActive          = false;
+  pomodoroInBreak         = false;
+  pomodoroPaused          = false;
+  pomodoroPausedTimeLeft  = 0;
+  pomodoroSessionEndFired = false;
+  pomodoroBreakEndFired   = false;
+  inPomodoroCountdown     = false;
   if (peekWindow      && !peekWindow.isDestroyed())      peekWindow.webContents.send('pomodoro-tick', null);
   if (dashboardWindow && !dashboardWindow.isDestroyed()) dashboardWindow.webContents.send('pomodoro-tick', null);
+  if (roundsDone > 0) {
+    summaryShowing = true;
+    showScreen('pomodoroFinalSummary', {
+      rounds:       roundsDone,
+      totalFocusMin,
+      pounceCount,
+      breakMin:     settings.pomodoroBreakMin || 5,
+    });
+  }
+});
+
+ipcMain.on('pomodoro-pause', () => {
+  if (!pomodoroActive || pomodoroPaused) return;
+  pomodoroPaused = true;
+  const now = Date.now();
+  pomodoroPausedTimeLeft = pomodoroInBreak
+    ? Math.max(0, pomodoroBreakEndsAt - now)
+    : Math.max(0, pomodoroEndsAt - now);
+  const secondsLeft = Math.floor(pomodoroPausedTimeLeft / 1000);
+  const data = { secondsLeft, inBreak: pomodoroInBreak, round: pomodoroRound, paused: true };
+  if (peekWindow      && !peekWindow.isDestroyed())      peekWindow.webContents.send('pomodoro-tick', data);
+  if (dashboardWindow && !dashboardWindow.isDestroyed()) dashboardWindow.webContents.send('pomodoro-tick', data);
+});
+
+ipcMain.on('pomodoro-resume', () => {
+  if (!pomodoroActive || !pomodoroPaused) return;
+  pomodoroPaused = false;
+  const now = Date.now();
+  if (pomodoroInBreak) {
+    pomodoroBreakEndsAt = now + pomodoroPausedTimeLeft;
+  } else {
+    pomodoroEndsAt = now + pomodoroPausedTimeLeft;
+  }
+  pomodoroPausedTimeLeft = 0;
 });
 
 ipcMain.on('snooze-app', (event, { appName, minutes }) => {
@@ -1356,10 +1502,10 @@ function computeCatMood() {
 function broadcastMoodChange() {
   const mood = computeCatMood();
   const health = settings.petHealth ?? 70;
-  const debt = paybackActive ? Math.ceil(paybackSeconds / 60) : debtMinutes;
+  const debt = paybackActive ? Math.ceil(paybackSeconds / 60) : (debtMinutes > 0 ? debtMinutes : 0);
   if (peekWindow && !peekWindow.isDestroyed())
-    peekWindow.webContents.send('mood-change', { mood, health, debt });
-}
+    peekWindow.webContents.send('mood-change', { mood, health, debt: debt > 0 ? debt : 0 });
+  }
 
 function flushStatsToHistory() {
   const key = todayKey();
@@ -1408,6 +1554,16 @@ app.whenReady().then(() => {
 
   setInterval(tick, 1000);
   setInterval(flushStatsToHistory, 5 * 60 * 1000);
+  setInterval(() => {
+    const today     = todayKey();
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (settings.lastActiveDate !== today) {
+      if (settings.lastActiveDate === yesterday) settings.streak = (settings.streak || 0) + 1;
+      else if (settings.lastActiveDate !== '') settings.streak = 1;
+      settings.lastActiveDate = today;
+      saveSettings(settings);
+    }
+  }, 60 * 60 * 1000);
   setInterval(updateQuestProgress, 10000);
   setInterval(runFocusDna, 60 * 1000);
 
@@ -1419,12 +1575,7 @@ app.whenReady().then(() => {
   // Save streak on startup so crashes don't wipe it
   const _today = todayKey();
   const _yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  if (settings.lastActiveDate !== _today) {
-    if (settings.lastActiveDate === _yesterday) settings.streak = (settings.streak || 0) + 1;
-    else if (settings.lastActiveDate !== '') settings.streak = 0;
-    // don't set lastActiveDate here — set it on quit so streak only counts if you actually used it
-    saveSettings(settings);
-  }
+  // streak is handled entirely on quit — don't touch it on startup
   
   const icon = nativeImage.createFromPath(path.join(__dirname, 'tray.png'));
   tray = new Tray(icon);

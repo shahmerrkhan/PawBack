@@ -187,14 +187,14 @@
     let countdownInterval = null;
 
     function resetContent() {
-        if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+        if (countdownInterval) { clearInterval(countdownInterval); clearTimeout(countdownInterval); countdownInterval = null; }
         const ring = document.getElementById('progressRing');
         if (ring) ring.remove();
         content.style.animation = 'none';
         content.offsetHeight;
         content.style.animation = '';
         document.body.style.animation = '';
-        }
+    }
 
     window.pawback.onSetScreen((type, pet, msg, extra) => {
       resetContent();
@@ -298,21 +298,112 @@
         document.body.offsetHeight;
         document.body.style.animation = 'bossShake 0.4s ease';
 
-        } else if (type === 'pomodoroCountdown') {
-        let n = 3;
+        } else if (type === 'generalSessionEnd') {
+        const total   = extra?.totalMin    || 0;
+        const focused = extra?.focusMin    || 0;
+        const lost    = extra?.distractMin || 0;
+        const caught  = extra?.pounceCount || 0;
+        const pct     = total > 0 ? Math.round((focused / total) * 100) : 0;
         content.innerHTML = `
-          <div class="lockin-text" id="countNum">${n}</div>
-          <div class="sub-message" style="margin-top:12px;">Locking in…</div>
+          ${img}
+          <div style="font-size:13px;font-weight:700;color:var(--amber,#ffb347);text-transform:uppercase;letter-spacing:1px;margin-top:18px;">Session Complete</div>
+          <div style="font-size:52px;font-weight:900;letter-spacing:-2px;margin:8px 0 4px;color:#fff;">${pct}%</div>
+          <div style="font-size:15px;color:#888;margin-bottom:20px;">focus rate</div>
+          <div style="display:flex;gap:24px;justify-content:center;margin-bottom:24px;">
+            <div style="text-align:center;">
+              <div style="font-size:28px;font-weight:800;color:#5cdb95;">${focused}m</div>
+              <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:0.5px;">focused</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:28px;font-weight:800;color:#ff6b6b;">${lost}m</div>
+              <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:0.5px;">lost</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:28px;font-weight:800;color:#ffb347;">${caught}x</div>
+              <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:0.5px;">caught</div>
+            </div>
+          </div>
+          <button class="btn btn-yes" onclick="window.pawback.generalAckEnd()">Done 🐾</button>
         `;
-        countdownInterval = setInterval(() => {
+
+      } else if (type === 'pomodoroSessionEnd') {
+        const round    = extra?.round    || 1;
+        const breakMin = extra?.breakMin || 5;
+        const caught   = extra?.pounceCount || 0;
+        content.innerHTML = `
+          ${img}
+          <div style="font-size:20px;font-weight:800;color:#5cdb95;margin-top:18px;">🎉 Round ${round} done!</div>
+          <div style="font-size:52px;font-weight:900;margin:8px 0 4px;letter-spacing:-2px;color:#fff;">GREAT WORK</div>
+          <div style="display:flex;gap:24px;justify-content:center;margin:16px 0;">
+            <div style="text-align:center;">
+              <div style="font-size:28px;font-weight:800;color:#ffb347;">${extra?.workMin || 25}m</div>
+              <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:0.5px;">focused</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:28px;font-weight:800;color:#ff6b6b;">${caught}x</div>
+              <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:0.5px;">caught</div>
+            </div>
+          </div>
+          <div style="font-size:15px;color:#888;margin-bottom:20px;">Break starting — ${breakMin} min. Go move around. 🍵</div>
+          <button class="btn btn-yes" onclick="window.pawback.pomodoroAckSessionEnd()">Start break ☕</button>
+        `;
+
+        } else if (type === 'pomodoroFinalSummary') {
+        const rounds  = extra?.rounds       || 1;
+        const focused = extra?.totalFocusMin || 0;
+        const caught  = extra?.pounceCount  || 0;
+        const hrs     = Math.floor(focused / 60);
+        const mins    = focused % 60;
+        const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+        content.innerHTML = `
+          ${img}
+          <div style="font-size:13px;font-weight:700;color:#ffb347;text-transform:uppercase;letter-spacing:1px;margin-top:18px;">Pomodoro Complete 🍅</div>
+          <div style="font-size:52px;font-weight:900;letter-spacing:-2px;margin:8px 0 4px;color:#fff;">${timeStr}</div>
+          <div style="font-size:15px;color:#888;margin-bottom:20px;">total focus time</div>
+          <div style="display:flex;gap:32px;justify-content:center;margin-bottom:24px;">
+            <div style="text-align:center;">
+              <div style="font-size:36px;font-weight:900;color:#5cdb95;">${rounds}</div>
+              <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:0.5px;">rounds</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:36px;font-weight:900;color:#ff6b6b;">${caught}</div>
+              <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:0.5px;">caught</div>
+            </div>
+          </div>
+          <button class="btn btn-yes" onclick="window.pawback.pomodoroAckFinal()">Done 🐾</button>
+        `;
+
+      } else if (type === 'pomodoroBreakEnd') {
+        const round = extra?.round || 2;
+        content.innerHTML = `
+          ${img}
+          <div style="font-size:48px;font-weight:900;margin-top:18px;letter-spacing:-2px;color:#ff9f2f;">LOCK IN 🔒</div>
+          <div style="font-size:18px;color:#aaa;margin-top:8px;">Round ${round} — let's go.</div>
+        `;
+
+      
+        } else if (type === 'pomodoroCountdown') {
+        content.innerHTML = `
+          <div class="lockin-text" id="countNum" style="font-size:120px;font-weight:900;letter-spacing:-4px;color:#ff9f2f;animation:lockPop 0.3s cubic-bezier(0.34,1.56,0.64,1);">3</div>
+          <div class="sub-message" style="margin-top:16px;font-size:16px;">Get ready…</div>
+        `;
+        let n = 3;
+        countdownInterval = setTimeout(function tick() {
           n--;
           const el = document.getElementById('countNum');
+          if (!el) return;
           if (n <= 0) {
-            clearInterval(countdownInterval);
-            countdownInterval = null;
-            if (el) el.textContent = 'GO! 🔒';
-          } else if (el) {
+            el.style.animation = 'none';
+            el.offsetHeight;
+            el.style.animation = 'lockPop 0.3s cubic-bezier(0.34,1.56,0.64,1)';
+            el.style.color = '#5cdb95';
+            el.textContent = 'GO! 🔒';
+          } else {
+            el.style.animation = 'none';
+            el.offsetHeight;
+            el.style.animation = 'lockPop 0.3s cubic-bezier(0.34,1.56,0.64,1)';
             el.textContent = n;
+            countdownInterval = setTimeout(tick, 1000);
           }
         }, 1000);
       } else if (type === 'intervention') {
@@ -339,7 +430,7 @@
 
     function spawnConfetti() {
       const colors = ['#ff9f2f', '#ff5f5f', '#5cdb95', '#4fc3f7', '#fff', '#ffee55'];
-      for (let i = 0; i < 70; i++) {
+      for (let i = 0; i < 30; i++) {
         const piece = document.createElement('div');
         piece.className = 'confetti-piece';
         piece.style.cssText = `

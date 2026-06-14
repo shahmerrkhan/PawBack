@@ -529,8 +529,22 @@
         <div class="step-text"><b>Need a real break?</b><span>Say yes when your pet asks. It'll give you time then drag you back.</span></div>
       </div>
     </div>
-    <button class="start-btn" id="startBtn">Set up & start →</button>
-
+    <div id="generalSessionCard" style="margin-bottom:16px;">
+      <div id="generalIdle">
+        <button class="start-btn" id="startBtn">🔒 Start Lock-in Session</button>
+      </div>
+      <div id="generalRunning" style="display:none;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center;">
+          <div id="generalStatus" style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:14px;letter-spacing:0.3px;">🟢 SESSION ACTIVE</div>
+          <div id="generalTimer" style="font-size:48px;font-weight:900;letter-spacing:-2px;color:var(--amber);line-height:1;margin-bottom:16px;">00:00</div>
+          <div style="display:flex;gap:10px;">
+            <button id="generalPauseBtn" style="flex:1;padding:12px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-sm);font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;">⏸ Pause</button>
+            <button id="generalStopBtn"  style="flex:1;padding:12px;background:var(--coral-glow);color:var(--coral);border:1px solid rgba(255,107,107,0.3);border-radius:var(--radius-sm);font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;">⏹ End Session</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <div class="glow-card" style="margin-top:16px;" id="contractCard">
       <div class="card-label">📝 Focus Contract</div>
       <div id="contractStatus" style="font-size:13px;color:var(--muted);margin:8px 0 12px;">Commit to a task and a time. Breaking it shows on your report card.</div>
@@ -812,6 +826,7 @@
     </div>
     <div style="display:flex;gap:10px;margin-bottom:12px;">
       <button id="pomStartBtn" style="flex:1;padding:14px;background:linear-gradient(135deg,var(--amber),#ff8c42);color:#0e0e10;border:none;border-radius:var(--radius);font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 20px rgba(255,179,71,0.25);">🍅 Start</button>
+      <button id="pomPauseBtn" style="flex:1;padding:14px;background:var(--surface);color:var(--muted);border:1px solid var(--border);border-radius:var(--radius);font-family:'Outfit',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;">⏸ Pause</button>
       <button id="pomStopBtn"  style="flex:1;padding:14px;background:var(--surface);color:var(--muted);border:1px solid var(--border);border-radius:var(--radius);font-family:'Outfit',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;">Stop</button>
     </div>
     <div class="card">
@@ -1272,27 +1287,54 @@
   window.pawback.onStatsUpdate(stats => applyStats(stats));
   window.pawback.onContractUpdate(data => renderContract(data));
   
+  
   // ── Pomodoro ──
+  let pomPaused = false;
   function startPom() {
     const w = Number(document.getElementById('pomWork').value)  || 25;
     const b = Number(document.getElementById('pomBreak').value) || 5;
     window.pawback.pomodoroStart(w, b);
-    document.getElementById('pomLabel').textContent = 'Work session running…';
-    document.getElementById('pomRound').textContent = 'Round 1';
+    pomPaused = false;
+    document.getElementById('pomLabel').textContent   = 'Work session running…';
+    document.getElementById('pomRound').textContent   = 'Round 1';
+    document.getElementById('pomPauseBtn').textContent = '⏸ Pause';
   }
   function stopPom() {
     window.pawback.pomodoroStop();
-    document.getElementById('pomDisplay').textContent = '—';
-    document.getElementById('pomLabel').textContent   = 'Not running';
-    document.getElementById('pomRound').textContent   = '';
+    pomPaused = false;
+    document.getElementById('pomDisplay').textContent  = '—';
+    document.getElementById('pomLabel').textContent    = 'Not running';
+    document.getElementById('pomRound').textContent    = '';
+    document.getElementById('pomPauseBtn').textContent = '⏸ Pause';
+  }
+  function togglePomPause() {
+    if (!pomPaused) {
+      window.pawback.pomodoroPause();
+      pomPaused = true;
+      document.getElementById('pomPauseBtn').textContent = '▶ Resume';
+      document.getElementById('pomLabel').textContent    = '⏸ Paused';
+    } else {
+      window.pawback.pomodoroResume();
+      pomPaused = false;
+      document.getElementById('pomPauseBtn').textContent = '⏸ Pause';
+    }
   }
   window.pawback.onPomodoroTick(data => {
-    if (!data) { stopPom(); return; }
+    if (!data) {
+      pomPaused = false;
+      document.getElementById('pomDisplay').textContent  = '—';
+      document.getElementById('pomLabel').textContent    = 'Not running';
+      document.getElementById('pomRound').textContent    = '';
+      document.getElementById('pomPauseBtn').textContent = '⏸ Pause';
+      return;
+    }
     const m = String(Math.floor(data.secondsLeft / 60)).padStart(2, '0');
     const s = String(data.secondsLeft % 60).padStart(2, '0');
     document.getElementById('pomDisplay').textContent = `${m}:${s}`;
-    document.getElementById('pomLabel').textContent   = data.inBreak ? '☕ Break time' : '🎯 Focus time';
-    document.getElementById('pomRound').textContent   = `Round ${data.round}`;
+    if (!data.paused) {
+      document.getElementById('pomLabel').textContent = data.inBreak ? '☕ Break time' : '🎯 Focus time';
+    }
+    document.getElementById('pomRound').textContent = `Round ${data.round}`;
   });
 
   // ── Boss mode ──
@@ -1306,12 +1348,69 @@
   function toggleBoss() { window.pawback.toggleBossMode(); }
   window.pawback.onBossModeChanged(v => { bossMode = v; syncBossUI(); });
 
+  
+  // ── General Session ──
+  let generalActive = false;
+  let generalPaused = false;
+  let generalSeconds = 0;
+  let generalTimerInterval = null;
+
+  function startGeneralSession() {
+    window.pawback.generalStart();
+    generalActive = true;
+    generalPaused = false;
+    generalSeconds = 0;
+    document.getElementById('generalIdle').style.display    = 'none';
+    document.getElementById('generalRunning').style.display = 'block';
+    document.getElementById('generalStatus').textContent    = '🟢 SESSION ACTIVE';
+    document.getElementById('generalStatus').style.color    = 'var(--green)';
+    document.getElementById('generalPauseBtn').textContent  = '⏸ Pause';
+    clearInterval(generalTimerInterval);
+    generalTimerInterval = setInterval(() => {
+      if (!generalPaused) {
+        generalSeconds++;
+        const m = String(Math.floor(generalSeconds / 60)).padStart(2, '0');
+        const s = String(generalSeconds % 60).padStart(2, '0');
+        document.getElementById('generalTimer').textContent = `${m}:${s}`;
+      }
+    }, 1000);
+  }
+
+  function pauseResumeGeneralSession() {
+    if (!generalPaused) {
+      window.pawback.generalPause();
+      generalPaused = true;
+      document.getElementById('generalPauseBtn').textContent = '▶ Resume';
+      document.getElementById('generalStatus').textContent   = '⏸ PAUSED';
+      document.getElementById('generalStatus').style.color   = 'var(--muted)';
+    } else {
+      window.pawback.generalResume();
+      generalPaused = false;
+      document.getElementById('generalPauseBtn').textContent = '⏸ Pause';
+      document.getElementById('generalStatus').textContent   = '🟢 SESSION ACTIVE';
+      document.getElementById('generalStatus').style.color   = 'var(--green)';
+    }
+  }
+
+  function stopGeneralSession() {
+    window.pawback.generalStop();
+    clearInterval(generalTimerInterval);
+    generalActive = false;
+    generalPaused = false;
+    document.getElementById('generalIdle').style.display    = 'block';
+    document.getElementById('generalRunning').style.display = 'none';
+  }
+
   // ── Buttons ──
-  document.getElementById('startBtn').addEventListener('click',    goToSettings);
+  document.getElementById('startBtn').addEventListener('click', startGeneralSession);
+  document.getElementById('generalPauseBtn').addEventListener('click', pauseResumeGeneralSession);
+  document.getElementById('generalStopBtn').addEventListener('click',  stopGeneralSession);
+  
   document.getElementById('muteBtn').addEventListener('click',     toggleMute);
   document.getElementById('saveBtn').addEventListener('click',     save);
-  document.getElementById('pomStartBtn').addEventListener('click', startPom);
-  document.getElementById('pomStopBtn').addEventListener('click',  stopPom);
+  document.getElementById('pomStartBtn').addEventListener('click',  startPom);
+  document.getElementById('pomPauseBtn').addEventListener('click',  togglePomPause);
+  document.getElementById('pomStopBtn').addEventListener('click',   stopPom);
   document.getElementById('bossModeBtn').addEventListener('click', toggleBoss);
 
   // ── Quests ──
