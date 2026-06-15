@@ -586,7 +586,6 @@ function updatePeekMood() {
 // ── Tick ──
 function tick() {
   if (inPomodoroCountdown) return;
-  if (summaryShowing) return;
   const appName = currentAppName;
   const now = Date.now();
 
@@ -683,13 +682,15 @@ function tick() {
     }
   }
 
+  if (summaryShowing) return;
+
   if (isPaused) {
     if (now >= pauseEndsAt) {
       isPaused = false;
       if (peekWindow && !peekWindow.isDestroyed())
         peekWindow.webContents.send('mood-change', { mood: 'idle', health: petHealth, debt: 0 });
     }
-    else { hidePounce(); return; }
+    return;
   }
 
   if (onBreak) {
@@ -758,6 +759,7 @@ function tick() {
     if (!internalApps.includes(appName) && !isAppSnoozed(appName)) {
       focusSeconds++;
       healthFocusCounter++;
+      if (debtMinutes > 0) { debtMinutes = 0; broadcastMoodChange(); }
       if (focusSeconds % 60 === 0) { hourlyFocus[new Date().getHours()]++; broadcastStats(); }
       if (focusSeconds % 5 === 0) broadcastMoodChange();
       if (healthFocusCounter >= 60) {
@@ -765,6 +767,7 @@ function tick() {
         adjustHealth(2);
       }
       maybeShowEncouragement();
+      checkActiveRecall();
     }
     lastDetectedApp = '';
     hidePounce();
@@ -1108,6 +1111,24 @@ ipcMain.on('mood-response', async (event, mood) => {
 });
 
 ipcMain.handle('get-mood-log', () => moodLog);
+ipcMain.handle('get-hover-message', async (event, context) => {
+  const tone = effectiveTone();
+  const task = activeContract ? activeContract.task : null;
+  const prompt = tone === 'brutal'
+    ? `You are a brutally honest cat mascot sitting in the corner of the user's screen. They just hovered over you. Say something short and slightly mean. Max 7 words. No quotes.${task ? ` They're supposed to be studying: ${task}.` : ''}`
+    : tone === 'gentle'
+    ? `You are a sweet cat mascot sitting in the corner of the user's screen. They just hovered over you. Say something cute and warm. Max 7 words. No quotes.${task ? ` They're studying: ${task}.` : ''}`
+    : `You are a sassy cat mascot sitting in the corner of the user's screen. They just hovered over you. Say something witty and playful. Max 7 words. No quotes.${task ? ` They're supposed to be studying: ${task}.` : ''}`;
+  const msg = await groqRequest({
+    model: 'llama3-8b-8192',
+    max_tokens: 30,
+    messages: [
+      { role: 'system', content: prompt },
+      { role: 'user', content: 'Say something.' },
+    ],
+  });
+  return msg || null;
+});
 ipcMain.on('open-questboard',    () => createQuestboardWindow());
 ipcMain.handle('get-quests',     () => ({ quests: settings.quests, totalXP: settings.totalXP, level: settings.level }));
 ipcMain.handle('get-timeline',   () => focusTimeline);
@@ -1118,9 +1139,21 @@ ipcMain.handle('get-contract',     () => getContractStatus());
 ipcMain.handle('get-ghost',        () => ({ ghostTimeline, sessionReplay }));
 ipcMain.handle('get-replay',       () => sessionReplay);
 ipcMain.on('start-contract', (event, { task, minutes }) => startContract(task, minutes));
+ipcMain.on('quick-contract', (event, { task }) => {
+  const minutes = settings.pomodoroWorkMin || 25;
+  startContract(task, minutes);
+  if (peekWindow && !peekWindow.isDestroyed())
+    peekWindow.webContents.send('show-bubble', `📝 locked in: ${task}`);
+});
 ipcMain.on('end-contract',   () => {
   if (!activeContract) return;
   const status = getContractStatus();
+  const focusedMin = Math.min(status.elapsed, status.minutes);
+  if (!settings.subjectLog) settings.subjectLog = {};
+  const key = todayKey();
+  if (!settings.subjectLog[key]) settings.subjectLog[key] = {};
+  const subj = activeContract.task;
+  settings.subjectLog[key][subj] = (settings.subjectLog[key][subj] || 0) + focusedMin;
   activeContract = null;
   settings.contractsTotal    = (settings.contractsTotal    || 0) + 1;
   settings.contractsKept     = (settings.contractsKept     || 0) + (status.done && !status.broken ? 1 : 0);
@@ -1144,6 +1177,10 @@ ipcMain.on('intervention-response', (event, choice) => {
     if (peekWindow && !peekWindow.isDestroyed())
       peekWindow.webContents.send('show-bubble', `let's go. locked in 🔒`);
   }
+});
+ipcMain.handle('get-subject-log', () => {
+  const key = todayKey();
+  return (settings.subjectLog || {})[key] || {};
 });
 ipcMain.handle('get-debt', () => ({
   debtMinutes:   (settings.debtMinutes || 0) + debtMinutes,
@@ -1445,6 +1482,30 @@ function runFocusDna() {
   }
 }
   
+// ── Active Recall ──
+let activeRecallMin = 0;
+let activeRecallNextAt = null;
+
+ipcMain.on('start-recall-mode', (event, { intervalMin }) => {
+  activeRecallMin = intervalMin || 20;
+  activeRecallNextAt = Date.now() + activeRecallMin * 60 * 1000;
+  if (peekWindow && !peekWindow.isDestroyed())
+    peekWindow.webContents.send('show-bubble', `🧠 Recall mode on — every ${activeRecallMin} min I'll ask you to close your notes.`);
+});
+
+ipcMain.on('stop-recall-mode', () => {
+  activeRecallMin = 0;
+  activeRecallNextAt = null;
+});
+
+function checkActiveRecall() {
+  if (!activeRecallMin || !activeRecallNextAt) return;
+  if (Date.now() < activeRecallNextAt) return;
+  activeRecallNextAt = Date.now() + activeRecallMin * 60 * 1000;
+  if (peekWindow && !peekWindow.isDestroyed())
+    peekWindow.webContents.send('recall-prompt');
+}
+
 // ── Intervention Mode ──
 function checkIntervention() {
   if (interventionFired) return;
@@ -1565,6 +1626,18 @@ app.whenReady().then(() => {
     }
   }, 60 * 60 * 1000);
   setInterval(updateQuestProgress, 10000);
+  setInterval(() => {
+    const h = new Date().getHours();
+    const m = new Date().getMinutes();
+    if (h === 22 && m === 0) {
+      const key = todayKey();
+      const saved = (settings.weeklyHistory[key] || { focusMinutes: 0 });
+      const total = saved.focusMinutes + Math.floor(focusSeconds / 60);
+      const streak = settings.streak || 0;
+      if (peekWindow && !peekWindow.isDestroyed())
+        peekWindow.webContents.send('show-bubble', `📊 today: ${total} min focused · ${streak} day streak 🔥`);
+    }
+  }, 60 * 1000);
   setInterval(runFocusDna, 60 * 1000);
 
   // Load yesterday's timeline for ghost mode

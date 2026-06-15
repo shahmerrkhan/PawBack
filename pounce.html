@@ -119,6 +119,10 @@
       60%     { transform: translateX(-6px); }
       80%     { transform: translateX(6px); }
     }
+    @keyframes angrySHAKE {
+      0%,100% { transform: translateX(-5px) rotate(-3deg); }
+      50%     { transform: translateX(5px) rotate(3deg); }
+    }
     @keyframes lockPop {
       from { transform: scale(0.5); opacity: 0; }
       to   { transform: scale(1); opacity: 1; }
@@ -196,10 +200,26 @@
         document.body.style.animation = '';
     }
 
+// ── pet mood on pounce screen ──
+    let currentPet = 'penguin.png';
+    window.pawback.getSettings && window.pawback.getSettings().then(s => {
+      if (s?.pet) currentPet = s.pet;
+    });
+
+    window.pawback.onSetPet && window.pawback.onSetPet(p => { currentPet = p; });
+
     window.pawback.onSetScreen((type, pet, msg, extra) => {
       resetContent();
-      const img = `<img src="${pet}" class="animal" />`;
-
+      const petSrc = pet || currentPet;
+      const moodStyle = type === 'pounce'
+        ? 'animation: petBounce 0.5s cubic-bezier(0.34,1.56,0.64,1), angrySHAKE 0.15s ease-in-out 0.5s 4;'
+        : type === 'lockin'
+        ? 'animation: petBounce 0.5s cubic-bezier(0.34,1.56,0.64,1); filter: drop-shadow(0 0 24px rgba(92,219,149,0.7));'
+        : type === 'pomodoroSessionEnd'
+        ? 'animation: petBounce 0.5s cubic-bezier(0.34,1.56,0.64,1); filter: drop-shadow(0 0 24px rgba(255,179,71,0.6));'
+        : '';
+      const img = `<img src="${petSrc}" class="animal" style="${moodStyle}" />`;
+      
       if (type === 'pounce') {
         const appName = extra?.appName || '';
         const badge = appName ? `<div class="caught-badge">📍 ${appName}</div>` : '';
