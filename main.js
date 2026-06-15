@@ -365,7 +365,7 @@ function broadcastQuestUpdate() {
 }
 
 // ── Session state ──
-let peekWindow, pounceWindow, dashboardWindow, reportCardWindow, questboardWindow, tray;
+let peekWindow, pounceWindow, dashboardWindow, reportCardWindow, questboardWindow, timerWindow, tray;
 
 const sessionStart = Date.now();
 let breaksTaken    = 0;
@@ -537,6 +537,21 @@ function createQuestboardWindow() {
   });
   questboardWindow.loadFile('questboard.html');
   questboardWindow.on('closed', () => { questboardWindow = null; });
+}
+
+function createTimerWindow() {
+  if (timerWindow && !timerWindow.isDestroyed()) { timerWindow.focus(); return; }
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+  timerWindow = new BrowserWindow({
+    width: 220, height: 220,
+    x: width - 340, y: height - 260,
+    frame: false, transparent: false,
+    alwaysOnTop: true, skipTaskbar: true,
+    resizable: false, focusable: true,
+    webPreferences: { preload: path.join(__dirname, 'preload.js') },
+  });
+  timerWindow.loadFile('timer.html');
+  timerWindow.on('closed', () => { timerWindow = null; });
 }
 
 function createDashboardWindow() {
@@ -1232,6 +1247,13 @@ ipcMain.on('save-peek-position', (event, { x, y }) => {
   saveSettings(settings);
 });
 
+ipcMain.on('open-timer',  () => createTimerWindow());
+ipcMain.on('close-timer', () => { if (timerWindow && !timerWindow.isDestroyed()) timerWindow.close(); });
+ipcMain.on('move-timer-window', (_, x, y) => { if (timerWindow && !timerWindow.isDestroyed()) timerWindow.setPosition(Math.round(x), Math.round(y)); });
+ipcMain.on('timer-buzz', () => {
+  exec(`powershell -c "[console]::beep(880,200); Start-Sleep -Milliseconds 100; [console]::beep(880,200)"`);
+});
+
 ipcMain.on('save-settings', (event, newSettings) => {
   settings = { ...settings, ...newSettings };
   saveSettings(settings);
@@ -1244,6 +1266,7 @@ function rebuildTrayMenu() {
   if (!tray) return;
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Open Dashboard', click: () => createDashboardWindow() },
+    { label: '⏱ Question Timer', click: () => createTimerWindow() },
     { label: '🐾 Daily Quests', click: () => createQuestboardWindow() },
     { label: `Pause ${settings.pauseDurationMin || 60} min`, click: () => {
         isPaused    = true;

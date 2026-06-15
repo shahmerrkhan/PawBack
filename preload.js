@@ -83,4 +83,8 @@ contextBridge.exposeInMainWorld('pawback', {
   getWindowPosition:   () => ipcRenderer.invoke('get-window-position'),
   movePeekWindow:      (x, y) => ipcRenderer.send('move-peek-window', { x, y }),
   savePeekPosition:    (x, y) => ipcRenderer.send('save-peek-position', { x, y }),
+  openTimer:           () => ipcRenderer.send('open-timer'),
+  closeTimer:          () => ipcRenderer.send('close-timer'),
+  moveTimerWindow:     (x, y) => ipcRenderer.send('move-timer-window', x, y),
+  timerBuzz:           () => ipcRenderer.send('timer-buzz'),
 });

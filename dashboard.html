@@ -467,6 +467,23 @@
     .prog-bar-wrap { background: var(--surface2); border-radius: 99px; height: 10px; overflow: hidden; }
     .prog-bar-fill { height: 100%; border-radius: 99px; transition: width 0.7s cubic-bezier(0.34,1.2,0.64,1); }
 
+    /* ── QUESTION TIMER ── */
+    .qt-preset {
+      padding: 8px 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--muted);
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .qt-preset:hover { border-color: var(--border2); color: var(--text); }
+    .qt-preset-active { border-color: rgba(255,179,71,0.5) !important; color: var(--amber) !important; background: var(--amber-glow) !important; }
+    #qt-display.warning { color: var(--coral) !important; }
+    #qt-display.urgent  { color: var(--coral) !important; animation: urgentPulse 0.5s ease-in-out infinite; }
+    @keyframes urgentPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
     /* scrollbar */
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -489,6 +506,7 @@
     <div class="tab" data-page="history"><span class="tab-icon">📅</span> History</div>
     <div class="tab" data-page="pomodoro"><span class="tab-icon">🍅</span> Pomodoro</div>
     <div class="tab" data-page="quests"><span class="tab-icon">🎯</span> Quests</div>
+    <div class="tab" data-page="timer"><span class="tab-icon">⏱️</span> Question Timer</div>
   </nav>
   <div class="sidebar-footer">Runs in background.<br>Close anytime 🐾</div>
 </div>
@@ -562,6 +580,43 @@
         </div>
       </div>
       <div id="contractRate" style="font-size:11px;color:var(--muted);margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <!-- QUESTION TIMER -->
+  <div class="page" id="timer">
+    <div class="page-header">
+      <h2>Question Timer</h2>
+      <p class="page-sub">Set a time limit per question. Finish early or see the clock run out.</p>
+    </div>
+
+    <div class="glow-card amber" style="text-align:center;padding:32px 24px;">
+      <div id="qt-display" style="font-size:72px;font-weight:900;letter-spacing:-3px;color:var(--amber);line-height:1;transition:color 0.4s;">5:00</div>
+      <div id="qt-status" style="font-size:13px;color:var(--muted);margin:10px 0 20px;min-height:18px;">pick a time and start</div>
+      <div style="width:100%;height:6px;background:var(--surface2);border-radius:99px;overflow:hidden;margin-bottom:28px;">
+        <div id="qt-bar" style="height:100%;width:100%;border-radius:99px;background:linear-gradient(90deg,var(--amber),#ff8c42);transition:width 1s linear,background 0.4s;"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:20px;">
+        <button onclick="qtSetPreset(2)"  id="qt-p2"  class="qt-preset">2m</button>
+        <button onclick="qtSetPreset(5)"  id="qt-p5"  class="qt-preset qt-preset-active">5m</button>
+        <button onclick="qtSetPreset(10)" id="qt-p10" class="qt-preset">10m</button>
+        <button onclick="qtSetPreset(15)" id="qt-p15" class="qt-preset">15m</button>
+        <button onclick="qtSetPreset(20)" id="qt-p20" class="qt-preset">20m</button>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button id="qt-start" onclick="qtStart()" style="flex:1;max-width:160px;padding:14px;background:linear-gradient(135deg,var(--amber),#ff8c42);color:#0e0e10;border:none;border-radius:var(--radius-sm);font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:all 0.2s;">▶ Start</button>
+        <button id="qt-done" onclick="qtDone()" style="display:none;flex:1;max-width:160px;padding:14px;background:var(--green-glow);color:var(--green);border:1px solid rgba(74,222,128,0.3);border-radius:var(--radius-sm);font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:all 0.2s;">✓ Finished!</button>
+        <button id="qt-reset" onclick="qtReset()" style="display:none;padding:14px 18px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:var(--radius-sm);font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s;">↺</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <div class="card-label">📋 Session Log</div>
+      <div id="qt-log" style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+        <div style="font-size:13px;color:var(--muted);">No questions yet this session.</div>
+      </div>
     </div>
   </div>
 
@@ -1581,6 +1636,96 @@
 
   // ── Init ──
   load();
+
+  // ── Question Timer ──
+  let qtTotal = 5 * 60, qtLeft = 5 * 60, qtRunning = false, qtInterval = null, qtState = null;
+  let qtLog = [];
+
+  function qtFmt(s) {
+    return `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
+  }
+  function qtSetPreset(min) {
+    if (qtRunning) return;
+    qtTotal = min * 60; qtLeft = qtTotal;
+    document.getElementById('qt-display').textContent = qtFmt(qtLeft);
+    document.getElementById('qt-display').className = '';
+    document.getElementById('qt-bar').style.width = '100%';
+    document.getElementById('qt-bar').style.background = 'linear-gradient(90deg,var(--amber),#ff8c42)';
+    document.getElementById('qt-status').textContent = 'pick a time and start';
+    qtState = null;
+    document.querySelectorAll('.qt-preset').forEach(b => b.classList.remove('qt-preset-active'));
+    document.getElementById('qt-p'+min).classList.add('qt-preset-active');
+  }
+  function qtStart() {
+    const startBtn = document.getElementById('qt-start');
+    if (qtState === 'timeout') return;
+    if (qtRunning) {
+      clearInterval(qtInterval); qtRunning = false;
+      startBtn.textContent = '▶ Resume';
+      document.getElementById('qt-status').textContent = 'paused';
+      return;
+    }
+    qtRunning = true;
+    startBtn.textContent = '⏸ Pause';
+    document.getElementById('qt-done').style.display = '';
+    document.getElementById('qt-reset').style.display = '';
+    document.getElementById('qt-status').textContent = 'solving...';
+    qtInterval = setInterval(() => {
+      qtLeft--;
+      document.getElementById('qt-display').textContent = qtFmt(qtLeft);
+      document.getElementById('qt-bar').style.width = ((qtLeft/qtTotal)*100)+'%';
+      const warn = Math.min(60, qtTotal * 0.2);
+      if (qtLeft <= 0) {
+        clearInterval(qtInterval); qtRunning = false; qtState = 'timeout';
+        document.getElementById('qt-display').className = 'urgent';
+        document.getElementById('qt-bar').style.width = '0%';
+        document.getElementById('qt-bar').style.background = 'var(--coral)';
+        document.getElementById('qt-status').textContent = "⏰ time's up — look up the answer!";
+        document.getElementById('qt-start').textContent = '▶ Start';
+        document.getElementById('qt-done').style.display = 'none';
+        qtAddLog('timeout', qtTotal - qtLeft);
+      } else if (qtLeft <= warn) {
+        document.getElementById('qt-display').className = 'warning';
+        document.getElementById('qt-bar').style.background = 'linear-gradient(90deg,var(--coral),#ff8c42)';
+        document.getElementById('qt-status').textContent = 'running low!';
+      }
+    }, 1000);
+  }
+  function qtDone() {
+    if (!qtRunning && qtState) return;
+    clearInterval(qtInterval); qtRunning = false; qtState = 'done';
+    const used = qtTotal - qtLeft;
+    document.getElementById('qt-display').className = '';
+    document.getElementById('qt-status').textContent = `✓ solved in ${qtFmt(used)}!`;
+    document.getElementById('qt-status').style.color = 'var(--green)';
+    document.getElementById('qt-start').textContent = '▶ Start';
+    document.getElementById('qt-done').style.display = 'none';
+    qtAddLog('done', used);
+  }
+  function qtReset() {
+    clearInterval(qtInterval); qtRunning = false; qtState = null;
+    qtLeft = qtTotal;
+    document.getElementById('qt-display').textContent = qtFmt(qtLeft);
+    document.getElementById('qt-display').className = '';
+    document.getElementById('qt-bar').style.width = '100%';
+    document.getElementById('qt-bar').style.background = 'linear-gradient(90deg,var(--amber),#ff8c42)';
+    document.getElementById('qt-status').textContent = 'pick a time and start';
+    document.getElementById('qt-status').style.color = '';
+    document.getElementById('qt-start').textContent = '▶ Start';
+    document.getElementById('qt-done').style.display = 'none';
+    document.getElementById('qt-reset').style.display = 'none';
+  }
+  function qtAddLog(result, usedSec) {
+    qtLog.unshift({ result, usedSec, preset: Math.floor(qtTotal/60) });
+    const logEl = document.getElementById('qt-log');
+    logEl.innerHTML = qtLog.slice(0,10).map((e,i) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid ${e.result==='done'?'rgba(74,222,128,0.2)':'rgba(255,107,107,0.2)'};">
+        <span style="font-size:18px;">${e.result==='done'?'✅':'⏰'}</span>
+        <span style="font-size:13px;font-weight:700;color:${e.result==='done'?'var(--green)':'var(--coral)'};">${e.result==='done'?'Solved':'Timed out'}</span>
+        <span style="font-size:12px;color:var(--muted);margin-left:auto;">${qtFmt(e.usedSec)} / ${e.preset}m</span>
+      </div>
+    `).join('');
+  }
 // ── Pounce Replay ──
   async function refreshReplay() {
     const replay = await window.pawback.getReplay();

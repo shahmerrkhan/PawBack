@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #111118;
+      border: 1px solid #2a2a3a;
+      border-radius: 16px;
+      overflow: hidden;
+      font-family: 'Segoe UI', sans-serif;
+      color: #f0ece4;
+      width: 220px;
+      height: 220px;
+      user-select: none;
+    }
+
+    #header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: move;
+    }
+    #closeBtn {
+      background: none;
+      border: none;
+      color: #666;
+      font-size: 14px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0 2px;
+    }
+    #closeBtn:hover { color: #ff6b6b; }
+
+    #timerDisplay {
+      text-align: center;
+      font-size: 48px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      padding: 8px 0 4px;
+      transition: color 0.4s;
+      color: #f0ece4;
+    }
+    #timerDisplay.warning { color: #ff9f43; }
+    #timerDisplay.urgent  { color: #ff6b6b; animation: urgentPulse 0.5s ease-in-out infinite; }
+
+    @keyframes urgentPulse {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.5; }
+    }
+
+    #statusText {
+      text-align: center;
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 8px;
+      min-height: 16px;
+    }
+    #statusText.done-msg { color: #5cdb95; font-weight: 700; }
+    #statusText.time-msg { color: #ff6b6b; font-weight: 700; }
+
+    #progressWrap {
+      width: 80%;
+      height: 4px;
+      background: #222230;
+      border-radius: 2px;
+      margin: 0 auto 12px;
+    }
+    #progressBar {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #7c6af7, #00d4aa);
+      border-radius: 2px;
+      transition: width 1s linear, background 0.4s;
+    }
+    #progressBar.warning { background: linear-gradient(90deg, #ff9f43, #ff6b6b); }
+
+    #controls {
+      display: flex;
+      gap: 6px;
+      padding: 0 12px;
+      justify-content: center;
+    }
+
+    button {
+      flex: 1;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 7px 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    button:active { transform: scale(0.95); }
+
+    #startBtn {
+      background: rgba(124,106,247,0.2);
+      border: 1px solid rgba(124,106,247,0.5);
+      color: #a89cf7;
+    }
+    #startBtn:hover { background: rgba(124,106,247,0.35); }
+
+    #doneBtn {
+      background: rgba(92,219,149,0.15);
+      border: 1px solid rgba(92,219,149,0.4);
+      color: #5cdb95;
+      display: none;
+    }
+    #doneBtn:hover { background: rgba(92,219,149,0.3); }
+
+    #resetBtn {
+      background: rgba(255,107,107,0.12);
+      border: 1px solid rgba(255,107,107,0.3);
+      color: #ff6b6b;
+      display: none;
+    }
+    #resetBtn:hover { background: rgba(255,107,107,0.25); }
+
+    #minuteRow {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      padding: 0 10px 10px;
+    }
+    #minuteRow button {
+      flex: none;
+      width: 36px;
+      background: #1a1a26;
+      border: 1px solid #2a2a3a;
+      color: #aaa;
+      font-size: 10px;
+      padding: 5px 0;
+      border-radius: 7px;
+    }
+    #minuteRow button:hover { background: #252535; color: #f0ece4; }
+    #minuteRow button.active-preset {
+      border-color: rgba(124,106,247,0.6);
+      color: #a89cf7;
+      background: rgba(124,106,247,0.12);
+    }
+  </style>
+</head>
+<body>
+  <div id="header">
+    ⏱ question timer
+    <button id="closeBtn">✕</button>
+  </div>
+  <div id="timerDisplay">5:00</div>
+  <div id="statusText">pick a time & start</div>
+  <div id="progressWrap"><div id="progressBar"></div></div>
+  <div id="minuteRow">
+    <button data-min="2">2m</button>
+    <button data-min="5" class="active-preset">5m</button>
+    <button data-min="10">10m</button>
+    <button data-min="15">15m</button>
+  </div>
+  <div id="controls">
+    <button id="startBtn">▶ Start</button>
+    <button id="doneBtn">✓ Finished!</button>
+    <button id="resetBtn">↺ Reset</button>
+  </div>
+
+  <script>
+    const display     = document.getElementById('timerDisplay');
+    const statusText  = document.getElementById('statusText');
+    const progressBar = document.getElementById('progressBar');
+    const startBtn    = document.getElementById('startBtn');
+    const doneBtn     = document.getElementById('doneBtn');
+    const resetBtn    = document.getElementById('resetBtn');
+    const closeBtn    = document.getElementById('closeBtn');
+    const presetBtns  = document.querySelectorAll('#minuteRow button');
+
+    let totalSeconds  = 5 * 60;
+    let secondsLeft   = totalSeconds;
+    let running       = false;
+    let intervalId    = null;
+    let finishedState = null; // null | 'done' | 'timeout'
+
+    function fmt(s) {
+      const m = Math.floor(s / 60);
+      const sec = s % 60;
+      return `${m}:${sec.toString().padStart(2, '0')}`;
+    }
+
+    function setPreset(min) {
+      if (running) return;
+      totalSeconds = min * 60;
+      secondsLeft  = totalSeconds;
+      display.textContent = fmt(secondsLeft);
+      display.className = '';
+      progressBar.style.width = '100%';
+      progressBar.className = '';
+      statusText.textContent = 'pick a time & start';
+      statusText.className = '';
+      finishedState = null;
+      presetBtns.forEach(b => b.classList.toggle('active-preset', parseInt(b.dataset.min) === min));
+    }
+
+    presetBtns.forEach(b => {
+      b.addEventListener('click', () => setPreset(parseInt(b.dataset.min)));
+    });
+
+    function tick() {
+      if (!running) return;
+      secondsLeft--;
+
+      display.textContent = fmt(secondsLeft);
+      const pct = (secondsLeft / totalSeconds) * 100;
+      progressBar.style.width = pct + '%';
+
+      const warningAt = Math.min(60, totalSeconds * 0.2);
+      if (secondsLeft <= 0) {
+        clearInterval(intervalId);
+        running = false;
+        finishedState = 'timeout';
+        display.className = 'urgent';
+        progressBar.style.width = '0%';
+        progressBar.className = 'warning';
+        statusText.textContent = "⏰ time's up — look it up!";
+        statusText.className = 'time-msg';
+        startBtn.textContent = '▶ Start';
+        doneBtn.style.display = 'none';
+        resetBtn.style.display = '';
+        // buzz — play system beep via IPC
+        window.pawback && window.pawback.timerBuzz && window.pawback.timerBuzz();
+      } else if (secondsLeft <= warningAt) {
+        display.className = 'warning';
+        progressBar.className = 'warning';
+        statusText.textContent = 'running out of time!';
+      }
+    }
+
+    startBtn.addEventListener('click', () => {
+      if (running) {
+        // pause
+        clearInterval(intervalId);
+        running = false;
+        startBtn.textContent = '▶ Resume';
+        statusText.textContent = 'paused';
+      } else {
+        if (finishedState) return; // don't restart after timeout without reset
+        running = true;
+        startBtn.textContent = '⏸ Pause';
+        doneBtn.style.display = '';
+        resetBtn.style.display = '';
+        statusText.textContent = 'solving...';
+        statusText.className = '';
+        intervalId = setInterval(tick, 1000);
+      }
+    });
+
+    doneBtn.addEventListener('click', () => {
+      if (!running && finishedState) return;
+      clearInterval(intervalId);
+      running = false;
+      finishedState = 'done';
+      const timeUsed = totalSeconds - secondsLeft;
+      const m = Math.floor(timeUsed / 60);
+      const s = timeUsed % 60;
+      display.className = '';
+      display.textContent = fmt(secondsLeft);
+      statusText.textContent = `✓ solved in ${m}:${s.toString().padStart(2,'0')}!`;
+      statusText.className = 'done-msg';
+      progressBar.className = '';
+      startBtn.textContent = '▶ Start';
+      doneBtn.style.display = 'none';
+    });
+
+    resetBtn.addEventListener('click', () => {
+      clearInterval(intervalId);
+      running = false;
+      finishedState = null;
+      secondsLeft = totalSeconds;
+      display.textContent = fmt(secondsLeft);
+      display.className = '';
+      progressBar.style.width = '100%';
+      progressBar.className = '';
+      statusText.textContent = 'pick a time & start';
+      statusText.className = '';
+      startBtn.textContent = '▶ Start';
+      doneBtn.style.display = 'none';
+      resetBtn.style.display = 'none';
+    });
+
+    closeBtn.addEventListener('click', () => {
+      window.pawback && window.pawback.closeTimer && window.pawback.closeTimer();
+    });
+
+    // drag by header
+    const header = document.getElementById('header');
+    let dragging = false, sx, sy, wx, wy;
+    header.addEventListener('mousedown', e => {
+      if (e.target === closeBtn) return;
+      dragging = true; sx = e.screenX; sy = e.screenY;
+      window.pawback && window.pawback.getWindowPosition().then(p => { wx = p.x; wy = p.y; });
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      window.pawback && window.pawback.moveTimerWindow && window.pawback.moveTimerWindow(wx + e.screenX - sx, wy + e.screenY - sy);
+    });
+    document.addEventListener('mouseup', () => { dragging = false; });
+  </script>
+</body>
+</html>
